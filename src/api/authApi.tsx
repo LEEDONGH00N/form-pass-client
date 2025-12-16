@@ -1,9 +1,11 @@
 import axios from 'axios';
 
 // Axios 인스턴스 생성
+const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080', // 백엔드 포트
-  withCredentials: true, // CORS 쿠키 공유 설정
+  baseURL: baseURL, 
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
