@@ -1,6 +1,16 @@
+// src/pages/LoginPage.tsx
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi } from '../api/authApi';
+import { authApi } from '../api/authApi'; 
+import { AxiosResponse } from 'axios';
+
+// 서버의 로그인 응답 데이터 구조 정의
+interface LoginResponseData {
+  accessToken: string;
+  // refreshToken?: string;
+  // userDetails?: any;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -13,18 +23,24 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // API 호출
-      const response = await authApi.login(formData);
+      // 1. API 호출
+      const response: AxiosResponse<LoginResponseData> = await authApi.login(formData);
       
-      // 토큰 저장 (실제 서버 응답 구조에 따라 response.data.accessToken 등으로 수정)
-      // 현재는 성공했다는 표시로 문자열 저장
-      localStorage.setItem('accessToken', 'dummy-token'); 
+      // 2. 토큰 저장 로직
+      const accessToken = response.data.accessToken; 
       
-      alert("로그인 성공! 환영합니다. 👋");
-      
-      // 홈 화면으로 이동 (Navbar 상태 반영을 위해 window.location 사용 가능)
-      // 리액트 라우터 방식:
-      navigate('/');
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken); 
+        
+        alert("로그인 성공! 환영합니다. 👋");
+        
+        // ⭐⭐⭐ 수정된 부분: 홈('/') 대신 대시보드('/host/dashboard')로 이동 ⭐⭐⭐
+        navigate('/host/dashboard');
+      } else {
+         // 토큰을 받지 못했으나 200 OK를 받은 경우
+        alert("로그인은 성공했지만, 토큰 정보가 불완전합니다. 개발자에게 문의하세요.");
+        console.error("로그인 성공 응답 데이터:", response.data);
+      }
       
     } catch (error) {
       console.error(error);
