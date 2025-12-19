@@ -8,10 +8,29 @@ import {
     X, 
     Upload, 
     Trash2, 
-    ChevronLeft, 
-    ChevronRight, 
-    Loader2
+    Loader2,
+    GripVertical, // 드래그 핸들 아이콘
+    Star          // 대표 이미지 아이콘
 } from 'lucide-react';
+
+// 🔥 [추가] dnd-kit 라이브러리 임포트
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // =================================================================
 // 1. 환경별 URL 및 상수 정의
@@ -47,7 +66,7 @@ interface QuestionRequest {
 interface CreateEventRequest {
   title: string;
   location: string;    
-  images: string[]; // [변경] 다중 이미지 URL
+  images: string[]; 
   description: string;
   schedules: ScheduleRequest[];
   questions: QuestionRequest[];
@@ -57,8 +76,8 @@ interface EventResponse {
     id: number;
     title: string;
     location: string;
-    images: string[]; // [변경]
-    thumbnailUrl?: string; // 하위 호환용
+    images: string[]; 
+    thumbnailUrl?: string; 
     description: string;
     eventCode?: string;
     schedules: ScheduleRequest[];
@@ -71,7 +90,80 @@ interface PresignedUrlResponse {
 }
 
 // =================================================================
-// 3. 컴포넌트 로직
+// 3. 서브 컴포넌트 (SortableImage)
+// =================================================================
+interface SortableImageProps {
+  id: string; // 이미지 URL을 ID로 사용
+  url: string;
+  index: number;
+  onRemove: (index: number) => void;
+}
+
+const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 'auto',
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group bg-gray-100 rounded-lg overflow-hidden border aspect-[4/3] shadow-sm transition-all ${
+        isDragging ? 'scale-105 shadow-xl ring-2 ring-indigo-500 opacity-80' : 'hover:border-indigo-300'
+      }`}
+    >
+      <img src={url} alt={`event-${index}`} className="w-full h-full object-cover" />
+      
+      {/* 순서 및 대표 배지 */}
+      <div className={`absolute top-2 left-2 px-2 py-0.5 rounded-full backdrop-blur-sm font-bold text-[10px] flex items-center gap-1 shadow-sm ${
+        index === 0 ? 'bg-indigo-600 text-white' : 'bg-black/60 text-white'
+      }`}>
+        {index === 0 && <Star size={10} fill="currentColor" />}
+        {index === 0 ? '대표' : index + 1}
+      </div>
+
+      {/* 컨트롤 오버레이 (Hover 시 표시) */}
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+        {/* 드래그 핸들 */}
+        <div 
+          {...attributes} 
+          {...listeners} 
+          className="p-2 bg-white rounded-full cursor-grab active:cursor-grabbing hover:bg-gray-100 transition text-gray-700"
+          title="드래그하여 순서 변경"
+        >
+          <GripVertical size={18} />
+        </div>
+        
+        {/* 삭제 버튼 */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation(); // 드래그 이벤트 전파 방지
+            onRemove(index);
+          }} 
+          className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition"
+          title="삭제"
+          onPointerDown={(e) => e.stopPropagation()} // 드래그 시작 방지
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// =================================================================
+// 4. 메인 컴포넌트 로직
 // =================================================================
 
 const HostEventCreatePage: React.FC = () => {
@@ -94,7 +186,7 @@ const HostEventCreatePage: React.FC = () => {
     const [eventData, setEventData] = useState({
         title: '',
         location: '',
-        images: [] as string[], // [변경] 이미지 배열
+        images: [] as string[], 
         description: '',
         questions: initialQuestions,
     });
@@ -105,6 +197,14 @@ const HostEventCreatePage: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false); 
     const [isUploading, setIsUploading] = useState(false);
     const [isFetching, setIsFetching] = useState(false); 
+
+    // --- dnd-kit 센서 설정 ---
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // --- 유틸리티 ---
     const toIsoString = (dateString: string, timeString: string): string => {
@@ -148,13 +248,7 @@ const HostEventCreatePage: React.FC = () => {
             try {
                 const token = localStorage.getItem('accessToken');
                 if (!token) {
-                    await Swal.fire({
-                        icon: 'warning',
-                        title: '로그인 필요',
-                        text: '로그인이 필요합니다.',
-                        confirmButtonColor: '#4F46E5',
-                        confirmButtonText: '확인'
-                    });
+                    await Swal.fire({ icon: 'warning', title: '로그인 필요', text: '로그인이 필요합니다.' });
                     navigate('/login');
                     return;
                 }
@@ -164,8 +258,6 @@ const HostEventCreatePage: React.FC = () => {
                 });
 
                 const data = response.data;
-
-                // [변경] 이미지 매핑 로직 (하위 호환성 고려)
                 const loadedImages = data.images && data.images.length > 0 
                     ? data.images 
                     : (data.thumbnailUrl ? [data.thumbnailUrl] : []);
@@ -178,87 +270,57 @@ const HostEventCreatePage: React.FC = () => {
                     questions: data.questions || initialQuestions,
                 });
 
-                if (data.eventCode) {
-                    setPreviewCode(data.eventCode);
-                }
+                if (data.eventCode) setPreviewCode(data.eventCode);
 
                 if (data.schedules && data.schedules.length > 0) {
                     const firstSchedule = data.schedules[0];
                     const { datePart } = parseIsoToLocal(firstSchedule.startTime);
                     setMainEventDate(datePart);
-
-                    const mappedSchedules = data.schedules.map(sch => ({
+                    setLocalSchedules(data.schedules.map(sch => ({
                         timeStart: parseIsoToLocal(sch.startTime).timePart,
                         timeEnd: parseIsoToLocal(sch.endTime).timePart,
                         maxCapacity: sch.maxCapacity
-                    }));
-                    setLocalSchedules(mappedSchedules);
+                    })));
                 }
-
             } catch (error) {
-                console.error('이벤트 정보 불러오기 실패:', error);
-                await Swal.fire({
-                    icon: 'error',
-                    title: '불러오기 실패',
-                    text: '이벤트 정보를 불러오는데 실패했습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
+                console.error(error);
+                await Swal.fire({ icon: 'error', title: '오류', text: '데이터를 불러오지 못했습니다.' });
                 navigate('/host/dashboard');
             } finally {
                 setIsFetching(false);
             }
         };
-
         fetchEventDetails();
     }, [isEditMode, eventId, navigate]);
 
 
-    // --- 기본 핸들러 ---
+    // --- 핸들러 ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setEventData({ ...eventData, [e.target.name]: e.target.value });
     };
 
-    // --- 스케줄 관련 핸들러 ---
     const handleCapacityChange = (index: number, value: string) => {
         const capacity = parseInt(value);
         if (isNaN(capacity) || capacity < 0) return;
-        const newSchedules = localSchedules.map((schedule, i) => {
-            if (i === index) { return { ...schedule, maxCapacity: capacity }; } 
-            return schedule;
-        });
+        const newSchedules = localSchedules.map((schedule, i) => i === index ? { ...schedule, maxCapacity: capacity } : schedule);
         setLocalSchedules(newSchedules);
     };
 
     const handleScheduleTimeChange = (index: number, field: 'timeStart' | 'timeEnd', value: string) => { 
-        const newSchedules = localSchedules.map((schedule, i) => {
-            if (i === index) { return { ...schedule, [field]: value }; }
-            return schedule;
-        });
+        const newSchedules = localSchedules.map((schedule, i) => i === index ? { ...schedule, [field]: value } : schedule);
         setLocalSchedules(newSchedules);
     };
 
     const handleAddSchedule = () => {
-        const newSchedule: LocalScheduleState = { timeStart: '17:00', timeEnd: '18:00', maxCapacity: 50 }; 
-        setLocalSchedules([...localSchedules, newSchedule]);
+        setLocalSchedules([...localSchedules, { timeStart: '17:00', timeEnd: '18:00', maxCapacity: 50 }]);
     };
     
     const handleRemoveSchedule = (index: number) => {
-        const newSchedules = localSchedules.filter((_, i) => i !== index);
-        setLocalSchedules(newSchedules);
+        setLocalSchedules(localSchedules.filter((_, i) => i !== index));
     };
 
-    // --- 질문 관련 핸들러 ---
     const handleAddQuestion = () => {
-        const newQuestion: QuestionRequest = { 
-            questionType: 'TEXT', 
-            questionText: '', 
-            isRequired: false 
-        };
-        setEventData(prev => ({ 
-            ...prev, 
-            questions: [...prev.questions, newQuestion] 
-        }));
+        setEventData(prev => ({ ...prev, questions: [...prev.questions, { questionType: 'TEXT', questionText: '', isRequired: false }] }));
     };
 
     const handleQuestionTextChange = (index: number, newText: string) => {
@@ -269,44 +331,22 @@ const HostEventCreatePage: React.FC = () => {
 
     const handleRemoveQuestion = async (index: number) => {
         if (eventData.questions[index].isRequired) {
-            await Swal.fire({
-                icon: 'warning',
-                title: '삭제 불가',
-                text: '이름, 연락처 등의 필수 질문은 삭제할 수 없습니다.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
+            await Swal.fire({ icon: 'warning', title: '삭제 불가', text: '필수 질문은 삭제할 수 없습니다.' });
             return;
         }
-        const newQuestions = eventData.questions.filter((_, i) => i !== index);
-        setEventData(prev => ({ ...prev, questions: newQuestions }));
+        setEventData(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
     };
 
-    // --- [변경] 이미지 업로드 및 순서 관리 핸들러 ---
-    
+    // --- 이미지 핸들러 ---
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
         setIsUploading(true);
-
         try {
             const token = localStorage.getItem('accessToken');
-            if (!token) {
-                await Swal.fire({
-                    icon: 'warning',
-                    title: '세션 만료',
-                    text: '로그인 세션이 만료되었습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
-                setIsUploading(false);
-                return;
-            }
-
             const newImageUrls: string[] = [];
 
-            // 다중 파일 순차 업로드
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const fileType = file.type || 'application/octet-stream';
@@ -318,198 +358,87 @@ const HostEventCreatePage: React.FC = () => {
                 );
 
                 const { presignedUrl, fileUrl } = presignResponse.data;
-
-                await axios.put(presignedUrl, file, {
-                    headers: { 'Content-Type': fileType }
-                });
-
+                await axios.put(presignedUrl, file, { headers: { 'Content-Type': fileType } });
                 newImageUrls.push(fileUrl);
             }
-
-            // 기존 이미지 뒤에 새 이미지 추가
             setEventData(prev => ({ ...prev, images: [...prev.images, ...newImageUrls] }));
-
         } catch (error) {
-            console.error("이미지 업로드 실패:", error);
-            await Swal.fire({
-                icon: 'error',
-                title: '업로드 실패',
-                text: '이미지 업로드 중 오류가 발생했습니다.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
+            console.error("업로드 실패:", error);
+            await Swal.fire({ icon: 'error', title: '업로드 실패', text: '이미지 업로드 중 오류가 발생했습니다.' });
         } finally {
             setIsUploading(false);
-            // 같은 파일 다시 선택 가능하도록 input 값 초기화는 DOM 레벨에서 처리됨 (리렌더링)
         }
     };
 
     const handleRemoveImage = (index: number) => {
-        setEventData(prev => ({
-            ...prev,
-            images: prev.images.filter((_, i) => i !== index)
-        }));
+        setEventData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     };
 
-    const handleMoveImage = (index: number, direction: 'left' | 'right') => {
-        const newImages = [...eventData.images];
-        if (direction === 'left' && index > 0) {
-            [newImages[index - 1], newImages[index]] = [newImages[index], newImages[index - 1]];
-        } else if (direction === 'right' && index < newImages.length - 1) {
-            [newImages[index], newImages[index + 1]] = [newImages[index + 1], newImages[index]];
+    // 🔥 [추가] 드래그 종료 핸들러
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = eventData.images.indexOf(active.id as string);
+            const newIndex = eventData.images.indexOf(over.id as string);
+            setEventData(prev => ({
+                ...prev,
+                images: arrayMove(prev.images, oldIndex, newIndex)
+            }));
         }
-        setEventData(prev => ({ ...prev, images: newImages }));
     };
-
 
     // --- 게시/수정 핸들러 ---
     const handlePublish = async () => {
-        if (isSaving || isUploading) {
-            await Swal.fire({
-                icon: 'info',
-                title: '작업 중',
-                text: '작업 중입니다. 잠시만 기다려주세요.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
-            return;
-        }
-
-        if (!eventData.title.trim()) {
-            await Swal.fire({
-                icon: 'warning',
-                title: '행사명 필요',
-                text: '행사명은 필수입니다.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
-            return;
-        }
-        if (localSchedules.length === 0) {
-            await Swal.fire({
-                icon: 'warning',
-                title: '일정 필요',
-                text: '최소 하나의 일정이 필요합니다.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
-            return;
-        }
-        // [변경] 이미지 체크
-        if (eventData.images.length === 0) {
-            await Swal.fire({
-                icon: 'warning',
-                title: '이미지 필요',
-                text: '최소 한 장의 이미지가 필요합니다.',
-                confirmButtonColor: '#4F46E5',
-                confirmButtonText: '확인'
-            });
+        if (isSaving || isUploading) return;
+        if (!eventData.title.trim() || localSchedules.length === 0 || eventData.images.length === 0) {
+            await Swal.fire({ icon: 'warning', title: '입력 확인', text: '행사명, 일정, 이미지는 필수입니다.' });
             return;
         }
 
         setIsSaving(true);
-        
         try {
             const token = localStorage.getItem('accessToken');
-            if (!token) {
-                await Swal.fire({
-                    icon: 'warning',
-                    title: '로그인 필요',
-                    text: '로그인이 필요합니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
-                return;
-            }
-            
             const schedulesToRequest: ScheduleRequest[] = localSchedules.map(schedule => ({
                 startTime: toIsoString(mainEventDate, schedule.timeStart),
                 endTime: toIsoString(mainEventDate, schedule.timeEnd),
                 maxCapacity: schedule.maxCapacity,
             }));
 
-            const finalRequestData: CreateEventRequest = {
-                ...eventData,
-                schedules: schedulesToRequest,
-            }
+            const finalRequestData: CreateEventRequest = { ...eventData, schedules: schedulesToRequest };
 
             if (isEditMode && eventId) {
-                await axios.put<EventResponse>(
-                    `${API_BASE_URL}/${eventId}`,
-                    finalRequestData,
-                    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-                );
-                await Swal.fire({
-                    icon: 'success',
-                    title: '수정 완료',
-                    text: '이벤트가 성공적으로 수정되었습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
+                await axios.put(`${API_BASE_URL}/${eventId}`, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
+                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 수정되었습니다.' });
             } else {
-                await axios.post<EventResponse>(
-                    API_BASE_URL,
-                    finalRequestData,
-                    { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-                );
-                await Swal.fire({
-                    icon: 'success',
-                    title: '게시 완료',
-                    text: '이벤트가 성공적으로 게시되었습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
+                await axios.post(API_BASE_URL, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
+                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 게시되었습니다.' });
             }
-
             navigate('/host/dashboard');
-
-        } catch (error) {
-            console.error('저장 실패:', error);
-            if (axios.isAxiosError(error) && error.response) {
-                await Swal.fire({
-                    icon: 'error',
-                    title: '저장 실패',
-                    text: error.response.data.message || '서버 오류가 발생했습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
-            } else {
-                await Swal.fire({
-                    icon: 'error',
-                    title: '오류 발생',
-                    text: '알 수 없는 오류가 발생했습니다.',
-                    confirmButtonColor: '#4F46E5',
-                    confirmButtonText: '확인'
-                });
-            }
+        } catch (error: any) {
+            await Swal.fire({ icon: 'error', title: '실패', text: error.response?.data?.message || '오류가 발생했습니다.' });
         } finally {
             setIsSaving(false);
         }
     };
 
-    if (isFetching) {
-        return (
-            <div className="h-screen flex items-center justify-center bg-gray-50">
-                 <div className="text-indigo-600 font-bold text-xl"><Loader2 className="animate-spin inline mr-2"/>정보 불러오는 중...</div>
-            </div>
-        );
-    }
+    if (isFetching) return <div className="h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-indigo-600 w-10 h-10"/></div>;
 
     return (
         <div className="bg-gray-100 h-screen flex overflow-hidden font-[Pretendard]">
             {/* [왼쪽 패널] 에디터 */}
             <aside className="w-2/3 min-w-[600px] bg-white border-r flex flex-col h-full z-10"> 
                 <div className="h-16 border-b flex items-center px-6 justify-between shrink-0">
-                    <h1 className="font-bold text-lg">
-                        {isEditMode ? '이벤트 수정하기' : '새 이벤트 만들기'}
-                    </h1>
+                    <h1 className="font-bold text-lg">{isEditMode ? '이벤트 수정하기' : '새 이벤트 만들기'}</h1>
                     <button onClick={() => navigate('/host/dashboard')} className="text-gray-400 hover:text-gray-600"><X /></button> 
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                    {/* 1. 이미지 업로드 섹션 (변경됨) */}
+                    {/* 1. 이미지 업로드 및 드래그 섹션 (변경됨) */}
                     <section>
-                        <h2 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">1. 대표 이미지 설정</h2>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">1. 대표 이미지 설정</h2>
+                            <span className="text-xs text-gray-400">드래그하여 순서 변경 (첫 번째가 대표)</span>
+                        </div>
                         
                         <div className="mb-4">
                             <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
@@ -528,47 +457,27 @@ const HostEventCreatePage: React.FC = () => {
                             </label>
                         </div>
 
-                        {/* 업로드된 이미지 리스트 및 순서 변경 */}
+                        {/* 🔥 [변경] dnd-kit 적용된 이미지 그리드 */}
                         {eventData.images.length > 0 && (
-                            <div className="grid grid-cols-4 gap-4">
-                                {eventData.images.map((url, idx) => (
-                                    <div key={idx} className="relative group bg-gray-100 rounded-lg overflow-hidden border aspect-[4/3] shadow-sm">
-                                        <img src={url} alt={`event-${idx}`} className="w-full h-full object-cover" />
-                                        
-                                        {/* 순서 표시 배지 */}
-                                        <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm font-bold">
-                                            {idx === 0 ? '대표' : idx + 1}
-                                        </div>
-
-                                        {/* 컨트롤 오버레이 (Hover 시 표시) */}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                                            <button 
-                                                onClick={() => handleMoveImage(idx, 'left')} 
-                                                disabled={idx === 0} 
-                                                className="p-1.5 bg-white rounded-full hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                                title="앞으로 이동"
-                                            >
-                                                <ChevronLeft size={16} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleRemoveImage(idx)} 
-                                                className="p-1.5 bg-white text-red-500 rounded-full hover:bg-red-50 transition"
-                                                title="삭제"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                            <button 
-                                                onClick={() => handleMoveImage(idx, 'right')} 
-                                                disabled={idx === eventData.images.length - 1} 
-                                                className="p-1.5 bg-white rounded-full hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                                                title="뒤로 이동"
-                                            >
-                                                <ChevronRight size={16} />
-                                            </button>
-                                        </div>
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext items={eventData.images} strategy={rectSortingStrategy}>
+                                    <div className="grid grid-cols-4 gap-4">
+                                        {eventData.images.map((url, idx) => (
+                                            <SortableImage 
+                                                key={url} // URL을 키로 사용 (고유해야 함)
+                                                id={url} 
+                                                url={url} 
+                                                index={idx} 
+                                                onRemove={handleRemoveImage} 
+                                            />
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         )}
                     </section>
                     <hr />
@@ -628,7 +537,6 @@ const HostEventCreatePage: React.FC = () => {
                                     ) : (
                                         <div className="w-8 h-8 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded text-xs font-bold">Q</div>
                                     )}
-                                    
                                     <input 
                                         type="text" 
                                         value={question.questionText} 
@@ -637,7 +545,6 @@ const HostEventCreatePage: React.FC = () => {
                                         placeholder="질문 내용을 입력하세요"
                                         className={`flex-1 bg-transparent border-none outline-none font-medium ${question.isRequired ? 'text-gray-500 cursor-not-allowed' : 'text-gray-800 placeholder-gray-300'}`}
                                     />
-                                    
                                     {!question.isRequired && (
                                         <button onClick={() => handleRemoveQuestion(index)} className="text-gray-300 hover:text-red-500 w-8 h-8 flex items-center justify-center transition">
                                             <Trash2 size={16} />
@@ -651,34 +558,24 @@ const HostEventCreatePage: React.FC = () => {
                 </div>
 
                 <div className="p-6 border-t bg-white flex gap-3 shrink-0">
-                    <button onClick={() => navigate('/host/dashboard')} className="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition">
-                        취소
-                    </button>
+                    <button onClick={() => navigate('/host/dashboard')} className="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition">취소</button>
                     <button onClick={handlePublish} disabled={isSaving || isUploading} className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 ${(isSaving || isUploading) ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
                         {(isSaving || isUploading) ? '처리 중...' : (isEditMode ? '수정 완료' : '게시하기')}
                     </button>
                 </div>
             </aside>
 
-            {/* [오른쪽 패널] 모바일 미리보기 (변경됨) */}
+            {/* [오른쪽 패널] 모바일 미리보기 */}
             <main className="w-1/3 bg-gray-200 flex items-center justify-center p-8 relative"> 
                 <div className="w-[375px] h-[720px] bg-white rounded-[3rem] border-[12px] border-gray-900 shadow-2xl overflow-hidden relative flex flex-col">
-                    {/* 노치 디자인 */}
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 h-7 bg-gray-900 rounded-b-xl z-30"></div>
-                    
-                    {/* 브라우저 주소창 */}
                     <div className="bg-white border-b pt-10 pb-2 px-4 z-20">
                         <div className="bg-gray-100 rounded-lg py-2 px-3 flex items-center gap-2 text-xs text-gray-500">
                             <i className="fas fa-lock text-[10px]"></i>
-                            <span className="truncate flex-1 font-mono">
-                                {SERVICE_DOMAIN}/{isEditMode ? previewCode : 'ticket_code'}
-                            </span>
-                            <i className="fas fa-rotate-right"></i>
+                            <span className="truncate flex-1 font-mono">{SERVICE_DOMAIN}/{isEditMode ? previewCode : 'ticket_code'}</span>
                         </div>
                     </div>
-
                     <div className="flex-1 overflow-y-auto bg-white custom-scrollbar">
-                        {/* 썸네일 (대표 이미지 or 첫 번째 이미지) */}
                         <div className="h-64 bg-gray-100 relative">
                             {eventData.images.length > 0 ? (
                                 <>
@@ -696,24 +593,17 @@ const HostEventCreatePage: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        
-                        {/* 본문 */}
                         <div className="p-6">
-                            <h1 className="text-2xl font-bold mb-2 leading-tight break-keep">
-                                {eventData.title || '행사 제목을 입력하세요'}
-                            </h1>
+                            <h1 className="text-2xl font-bold mb-2 leading-tight break-keep">{eventData.title || '행사 제목을 입력하세요'}</h1>
                             <div className="text-sm text-gray-500 mb-6 flex flex-col gap-1">
                                 <span className="flex items-center gap-1"><i className="far fa-calendar"></i> {mainEventDate || '0000-00-00'}</span>
                                 <span className="flex items-center gap-1"><i className="fas fa-map-marker-alt"></i> {eventData.location || '장소 미정'}</span>
                             </div>
-
                             {eventData.description && (
                                 <div className="mb-8 text-sm text-gray-600 whitespace-pre-wrap leading-relaxed border-l-2 border-gray-200 pl-3">
                                     {eventData.description}
                                 </div>
                             )}
-
-                            {/* 티켓 선택 */}
                             <h3 className="font-bold text-gray-800 mb-3 text-sm">티켓 선택</h3>
                             <div className="grid grid-cols-2 gap-2 mb-8">
                                 {localSchedules.map((s, i) => (
@@ -723,8 +613,6 @@ const HostEventCreatePage: React.FC = () => {
                                     </div>
                                 ))}
                             </div>
-
-                            {/* 질문 리스트 */}
                             <h3 className="font-bold text-gray-800 mb-3 text-sm">신청 정보</h3>
                             <div className="space-y-3 pb-10">
                                 {eventData.questions.map((q, i) => (
@@ -738,12 +626,8 @@ const HostEventCreatePage: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    
-                    {/* 하단 버튼 예시 */}
                     <div className="p-4 border-t bg-white">
-                         <div className="w-full bg-gray-900 text-white text-center py-3 rounded-xl font-bold text-sm">
-                             예매하기
-                         </div>
+                         <div className="w-full bg-gray-900 text-white text-center py-3 rounded-xl font-bold text-sm">예매하기</div>
                     </div>
                 </div>
             </main>
