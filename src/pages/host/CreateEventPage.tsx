@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { 
     X, 
     Upload, 
@@ -147,7 +148,13 @@ const HostEventCreatePage: React.FC = () => {
             try {
                 const token = localStorage.getItem('accessToken');
                 if (!token) {
-                    alert('로그인이 필요합니다.');
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: '로그인 필요',
+                        text: '로그인이 필요합니다.',
+                        confirmButtonColor: '#4F46E5',
+                        confirmButtonText: '확인'
+                    });
                     navigate('/login');
                     return;
                 }
@@ -190,7 +197,13 @@ const HostEventCreatePage: React.FC = () => {
 
             } catch (error) {
                 console.error('이벤트 정보 불러오기 실패:', error);
-                alert('이벤트 정보를 불러오는데 실패했습니다.');
+                await Swal.fire({
+                    icon: 'error',
+                    title: '불러오기 실패',
+                    text: '이벤트 정보를 불러오는데 실패했습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
                 navigate('/host/dashboard');
             } finally {
                 setIsFetching(false);
@@ -254,9 +267,15 @@ const HostEventCreatePage: React.FC = () => {
         setEventData(prev => ({ ...prev, questions: newQuestions }));
     };
 
-    const handleRemoveQuestion = (index: number) => {
+    const handleRemoveQuestion = async (index: number) => {
         if (eventData.questions[index].isRequired) {
-            alert('이름, 연락처 등의 필수 질문은 삭제할 수 없습니다.');
+            await Swal.fire({
+                icon: 'warning',
+                title: '삭제 불가',
+                text: '이름, 연락처 등의 필수 질문은 삭제할 수 없습니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
             return;
         }
         const newQuestions = eventData.questions.filter((_, i) => i !== index);
@@ -272,9 +291,15 @@ const HostEventCreatePage: React.FC = () => {
         setIsUploading(true);
 
         try {
-            const token = localStorage.getItem('accessToken'); 
+            const token = localStorage.getItem('accessToken');
             if (!token) {
-                alert('로그인 세션이 만료되었습니다.');
+                await Swal.fire({
+                    icon: 'warning',
+                    title: '세션 만료',
+                    text: '로그인 세션이 만료되었습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
                 setIsUploading(false);
                 return;
             }
@@ -306,7 +331,13 @@ const HostEventCreatePage: React.FC = () => {
 
         } catch (error) {
             console.error("이미지 업로드 실패:", error);
-            alert('이미지 업로드 중 오류가 발생했습니다.');
+            await Swal.fire({
+                icon: 'error',
+                title: '업로드 실패',
+                text: '이미지 업로드 중 오류가 발생했습니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
         } finally {
             setIsUploading(false);
             // 같은 파일 다시 선택 가능하도록 input 값 초기화는 DOM 레벨에서 처리됨 (리렌더링)
@@ -334,21 +365,60 @@ const HostEventCreatePage: React.FC = () => {
     // --- 게시/수정 핸들러 ---
     const handlePublish = async () => {
         if (isSaving || isUploading) {
-             alert('작업 중입니다. 잠시만 기다려주세요.');
-             return;
+            await Swal.fire({
+                icon: 'info',
+                title: '작업 중',
+                text: '작업 중입니다. 잠시만 기다려주세요.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
         }
-        
-        if (!eventData.title.trim()) { alert('행사명은 필수입니다.'); return; }
-        if (localSchedules.length === 0) { alert('최소 하나의 일정이 필요합니다.'); return; }
+
+        if (!eventData.title.trim()) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '행사명 필요',
+                text: '행사명은 필수입니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
+        if (localSchedules.length === 0) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '일정 필요',
+                text: '최소 하나의 일정이 필요합니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
         // [변경] 이미지 체크
-        if (eventData.images.length === 0) { alert('최소 한 장의 이미지가 필요합니다.'); return; }
+        if (eventData.images.length === 0) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '이미지 필요',
+                text: '최소 한 장의 이미지가 필요합니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
 
         setIsSaving(true);
         
         try {
-            const token = localStorage.getItem('accessToken'); 
+            const token = localStorage.getItem('accessToken');
             if (!token) {
-                alert('로그인이 필요합니다.');
+                await Swal.fire({
+                    icon: 'warning',
+                    title: '로그인 필요',
+                    text: '로그인이 필요합니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
                 return;
             }
             
@@ -365,28 +435,52 @@ const HostEventCreatePage: React.FC = () => {
 
             if (isEditMode && eventId) {
                 await axios.put<EventResponse>(
-                    `${API_BASE_URL}/${eventId}`, 
-                    finalRequestData, 
+                    `${API_BASE_URL}/${eventId}`,
+                    finalRequestData,
                     { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                 );
-                alert(`수정 완료!`);
+                await Swal.fire({
+                    icon: 'success',
+                    title: '수정 완료',
+                    text: '이벤트가 성공적으로 수정되었습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             } else {
                 await axios.post<EventResponse>(
-                    API_BASE_URL, 
-                    finalRequestData, 
+                    API_BASE_URL,
+                    finalRequestData,
                     { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
                 );
-                alert(`게시 완료!`);
+                await Swal.fire({
+                    icon: 'success',
+                    title: '게시 완료',
+                    text: '이벤트가 성공적으로 게시되었습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             }
-            
+
             navigate('/host/dashboard');
 
         } catch (error) {
             console.error('저장 실패:', error);
             if (axios.isAxiosError(error) && error.response) {
-                alert(`실패: ${error.response.data.message || '서버 오류'}`);
+                await Swal.fire({
+                    icon: 'error',
+                    title: '저장 실패',
+                    text: error.response.data.message || '서버 오류가 발생했습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             } else {
-                alert('알 수 없는 오류가 발생했습니다.');
+                await Swal.fire({
+                    icon: 'error',
+                    title: '오류 발생',
+                    text: '알 수 없는 오류가 발생했습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             }
         } finally {
             setIsSaving(false);

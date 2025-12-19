@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { 
   MapPin, 
   Calendar, 
@@ -165,15 +166,48 @@ const GuestEventPage: React.FC = () => {
 
     // --- 예약 제출 ---
     const handleSubmit = async () => {
-        if (!selectedScheduleId) { alert('방문할 시간을 선택해주세요.'); return; }
-        if (!name.trim()) { alert('예약자 이름을 입력해주세요.'); return; }
-        if (phone.length < 12) { alert('올바른 휴대폰 번호를 입력해주세요.'); return; }
+        if (!selectedScheduleId) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '시간 선택 필요',
+                text: '방문할 시간을 선택해주세요.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
+        if (!name.trim()) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '이름 입력 필요',
+                text: '예약자 이름을 입력해주세요.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
+        if (phone.length < 12) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '연락처 확인',
+                text: '올바른 휴대폰 번호를 입력해주세요.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
+            return;
+        }
 
         if (event) {
             const visibleQuestions = event.questions.filter(q => q.questionText !== '이름' && q.questionText !== '연락처');
             for (const q of visibleQuestions) {
                 if (q.isRequired && !answers[q.id]?.trim()) {
-                    alert(`'${q.questionText}' 항목을 입력해주세요.`);
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: '입력 필요',
+                        text: `'${q.questionText}' 항목을 입력해주세요.`,
+                        confirmButtonColor: '#4F46E5',
+                        confirmButtonText: '확인'
+                    });
                     return;
                 }
             }
@@ -208,19 +242,37 @@ const GuestEventPage: React.FC = () => {
         try {
             setIsSubmitting(true);
             const response = await axios.post(`${API_HOST}/api/reservations`, requestData);
-            
+
             const { qrToken } = response.data;
             localStorage.setItem('guest_token', qrToken);
-            
-            alert('예약이 확정되었습니다!');
+
+            await Swal.fire({
+                icon: 'success',
+                title: '예약 완료',
+                text: '예약이 확정되었습니다!',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
             navigate(`/ticket/${qrToken}`);
 
         } catch (error: any) {
             console.error("예약 실패:", error);
             if (error.response) {
-                alert(`예약 실패: ${error.response.data.message || '오류가 발생했습니다.'}`);
+                await Swal.fire({
+                    icon: 'error',
+                    title: '예약 실패',
+                    text: error.response.data.message || '오류가 발생했습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             } else {
-                alert('서버와 통신 중 오류가 발생했습니다.');
+                await Swal.fire({
+                    icon: 'error',
+                    title: '통신 오류',
+                    text: '서버와 통신 중 오류가 발생했습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             }
         } finally {
             setIsSubmitting(false);

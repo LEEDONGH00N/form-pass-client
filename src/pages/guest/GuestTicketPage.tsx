@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import Swal from 'sweetalert2';
 import { 
   MapPin, 
   Calendar, 
@@ -65,7 +66,13 @@ const GuestTicketPage: React.FC = () => {
                 setTicket(response.data);
             } catch (err) {
                 console.error("티켓 조회 실패:", err);
-                alert("유효하지 않은 티켓이거나 만료되었습니다.");
+                await Swal.fire({
+                    icon: 'error',
+                    title: '티켓 조회 실패',
+                    text: '유효하지 않은 티켓이거나 만료되었습니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
                 navigate('/');
             } finally {
                 setLoading(false);
@@ -77,15 +84,39 @@ const GuestTicketPage: React.FC = () => {
     // 🔥 [추가] 예약 취소 핸들러
     const handleCancel = async () => {
         if (!ticket) return;
-        if (!window.confirm("정말로 예약을 취소하시겠습니까?\n취소 후에는 복구할 수 없습니다.")) return;
+
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: '예약 취소',
+            text: '정말로 예약을 취소하시겠습니까? 취소 후에는 복구할 수 없습니다.',
+            showCancelButton: true,
+            confirmButtonColor: '#4F46E5',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: '취소하기',
+            cancelButtonText: '돌아가기'
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             await axios.delete(API_CANCEL_RESERVATION(ticket.id));
-            alert("예약이 정상적으로 취소되었습니다.");
+            await Swal.fire({
+                icon: 'success',
+                title: '취소 완료',
+                text: '예약이 정상적으로 취소되었습니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
             window.location.reload(); // 상태 업데이트를 위해 새로고침
         } catch (error) {
             console.error(error);
-            alert("예약 취소에 실패했습니다. 이미 입장했거나 기간이 지났을 수 있습니다.");
+            await Swal.fire({
+                icon: 'error',
+                title: '취소 실패',
+                text: '예약 취소에 실패했습니다. 이미 입장했거나 기간이 지났을 수 있습니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
         }
     };
 

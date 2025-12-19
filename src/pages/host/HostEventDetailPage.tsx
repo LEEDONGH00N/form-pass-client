@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import Swal from 'sweetalert2';
 import { 
     ArrowLeft, 
     QrCode, 
@@ -106,18 +107,43 @@ const HostEventDetailPage: React.FC = () => {
 
     // --- 수동 체크인 핸들러 ---
     const handleManualCheckIn = async (reservationId: number, guestName: string) => {
-        if (!window.confirm(`${guestName}님을 입장 처리하시겠습니까?`)) return;
+        const result = await Swal.fire({
+            icon: 'question',
+            title: '입장 확인',
+            text: `${guestName}님을 입장 처리하시겠습니까?`,
+            showCancelButton: true,
+            confirmButtonColor: '#4F46E5',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: '입장 처리',
+            cancelButtonText: '취소'
+        });
+
+        if (!result.isConfirmed) return;
 
         try {
             const token = localStorage.getItem('accessToken');
             await axios.patch(API_MANUAL_CHECKIN_URL(reservationId), {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert(`✅ ${guestName}님 입장 처리 완료`);
-            fetchData(); 
+            await Swal.fire({
+                icon: 'success',
+                title: '입장 처리 완료',
+                text: `${guestName}님 입장 처리가 완료되었습니다.`,
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            fetchData();
         } catch (error) {
             console.error(error);
-            alert('❌ 입장 처리 실패');
+            await Swal.fire({
+                icon: 'error',
+                title: '입장 처리 실패',
+                text: '입장 처리에 실패했습니다.',
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인'
+            });
         }
     };
 
@@ -139,19 +165,39 @@ const HostEventDetailPage: React.FC = () => {
             const { guestName, message } = response.data;
 
             setScanStatus('success');
-            alert(`✅ 인증 성공!\n\n이름: ${guestName}\n메시지: ${message || '입장 처리되었습니다.'}`);
-            
-            fetchData(); 
+            await Swal.fire({
+                icon: 'success',
+                title: '인증 성공',
+                html: `<strong>이름:</strong> ${guestName}<br><strong>메시지:</strong> ${message || '입장 처리되었습니다.'}`,
+                confirmButtonColor: '#4F46E5',
+                confirmButtonText: '확인',
+                timer: 2500,
+                showConfirmButton: false
+            });
+
+            fetchData();
 
         } catch (error: any) {
             setScanStatus('error');
             console.error(error);
             const errMsg = error.response?.data?.message || '유효하지 않은 QR입니다.';
-            
+
             if (error.response?.status === 409) {
-                alert(`⚠️ 이미 입장 처리된 티켓입니다.`);
+                await Swal.fire({
+                    icon: 'warning',
+                    title: '중복 입장',
+                    text: '이미 입장 처리된 티켓입니다.',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             } else {
-                alert(`❌ 인증 실패: ${errMsg}`);
+                await Swal.fire({
+                    icon: 'error',
+                    title: '인증 실패',
+                    text: errMsg,
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: '확인'
+                });
             }
         } finally {
             setTimeout(() => {
@@ -319,7 +365,13 @@ const HostEventDetailPage: React.FC = () => {
                                     console.log(error);
                                     // error 객체에 message가 없을 수도 있으므로 안전하게 접근
                                     const msg = error?.message || '권한을 확인해주세요 (HTTPS 필수)';
-                                    alert(`카메라 오류: ${msg}`);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: '카메라 오류',
+                                        text: msg,
+                                        confirmButtonColor: '#4F46E5',
+                                        confirmButtonText: '확인'
+                                    });
                                 }}
                                 components={{ finder: false }}
                                 styles={{

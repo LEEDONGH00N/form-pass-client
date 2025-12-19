@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
+import Swal from 'sweetalert2';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -28,7 +29,13 @@ export default function SignupPage() {
     } else if (timeLeft === 0) {
       setIsTimerActive(false);
       if (step === 'VERIFY') {
-        alert("인증 시간이 만료되었습니다. 다시 시도해주세요.");
+        Swal.fire({
+          icon: 'error',
+          title: '시간 만료',
+          text: '인증 시간이 만료되었습니다. 다시 시도해주세요.',
+          confirmButtonColor: '#4F46E5',
+          confirmButtonText: '확인'
+        });
         setStep('INPUT'); // 처음으로 되돌리기
       }
     }
@@ -45,7 +52,13 @@ export default function SignupPage() {
   // 1. 이메일 인증코드 전송
   const handleSendEmail = async () => {
     if (!email) {
-        alert("이메일을 입력해주세요.");
+        await Swal.fire({
+          icon: 'warning',
+          title: '입력 필요',
+          text: '이메일을 입력해주세요.',
+          confirmButtonColor: '#4F46E5',
+          confirmButtonText: '확인'
+        });
         return;
     }
     try {
@@ -53,10 +66,22 @@ export default function SignupPage() {
       setStep('VERIFY');
       setIsTimerActive(true);
       setTimeLeft(300); // 5분 리셋
-      alert("인증 메일이 발송되었습니다! 📧");
+      await Swal.fire({
+        icon: 'success',
+        title: '발송 완료',
+        text: '인증 메일이 발송되었습니다!',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     } catch (e) {
       console.error(e);
-      alert("메일 발송 실패. 서버 상태를 확인해주세요.");
+      await Swal.fire({
+        icon: 'error',
+        title: '발송 실패',
+        text: '메일 발송 실패. 서버 상태를 확인해주세요.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     }
   };
 
@@ -66,26 +91,56 @@ export default function SignupPage() {
       await authApi.verifyEmail({ email, authCode: code });
       setIsTimerActive(false);
       setStep('COMPLETE');
-      alert("인증 성공! ✅\n나머지 정보를 입력해주세요.");
+      await Swal.fire({
+        icon: 'success',
+        title: '인증 성공',
+        text: '나머지 정보를 입력해주세요.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     } catch (e) {
       console.error(e);
-      alert("인증 코드가 올바르지 않거나 만료되었습니다.");
+      await Swal.fire({
+        icon: 'error',
+        title: '인증 실패',
+        text: '인증 코드가 올바르지 않거나 만료되었습니다.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     }
   };
 
   // 3. 최종 회원가입
   const handleSignup = async () => {
     if (!name || !password) {
-        alert("모든 정보를 입력해주세요.");
+        await Swal.fire({
+          icon: 'warning',
+          title: '입력 필요',
+          text: '모든 정보를 입력해주세요.',
+          confirmButtonColor: '#4F46E5',
+          confirmButtonText: '확인'
+        });
         return;
     }
     try {
       await authApi.signup({ email, name, password });
-      alert("회원가입이 완료되었습니다! 🎉\n로그인 페이지로 이동합니다.");
+      await Swal.fire({
+        icon: 'success',
+        title: '회원가입 완료',
+        text: '로그인 페이지로 이동합니다.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
       navigate('/login');
     } catch (e) {
       console.error(e);
-      alert("가입 실패: 이미 존재하는 회원이거나 오류가 발생했습니다.");
+      await Swal.fire({
+        icon: 'error',
+        title: '가입 실패',
+        text: '이미 존재하는 회원이거나 오류가 발생했습니다.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     }
   };
 

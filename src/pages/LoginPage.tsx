@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi } from '../api/authApi'; 
+import { authApi } from '../api/authApi';
 import { AxiosResponse } from 'axios';
+import Swal from 'sweetalert2';
 
 // 서버의 로그인 응답 데이터 구조 정의
 interface LoginResponseData {
@@ -30,21 +31,39 @@ export default function LoginPage() {
       const accessToken = response.data.accessToken; 
       
       if (accessToken) {
-        localStorage.setItem('accessToken', accessToken); 
-        
-        alert("로그인 성공! 환영합니다. 👋");
-        
+        localStorage.setItem('accessToken', accessToken);
+
+        await Swal.fire({
+          icon: 'success',
+          title: '로그인 성공',
+          text: '환영합니다!',
+          confirmButtonColor: '#4F46E5',
+          confirmButtonText: '확인'
+        });
+
         // ⭐⭐⭐ 수정된 부분: 홈('/') 대신 대시보드('/host/dashboard')로 이동 ⭐⭐⭐
         navigate('/host/dashboard');
       } else {
          // 토큰을 받지 못했으나 200 OK를 받은 경우
-        alert("로그인은 성공했지만, 토큰 정보가 불완전합니다. 개발자에게 문의하세요.");
+        await Swal.fire({
+          icon: 'warning',
+          title: '경고',
+          text: '로그인은 성공했지만, 토큰 정보가 불완전합니다. 개발자에게 문의하세요.',
+          confirmButtonColor: '#4F46E5',
+          confirmButtonText: '확인'
+        });
         console.error("로그인 성공 응답 데이터:", response.data);
       }
-      
+
     } catch (error) {
       console.error(error);
-      alert("로그인 실패: 이메일 또는 비밀번호를 확인해주세요.");
+      await Swal.fire({
+        icon: 'error',
+        title: '로그인 실패',
+        text: '이메일 또는 비밀번호를 확인해주세요.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     }
   };
 

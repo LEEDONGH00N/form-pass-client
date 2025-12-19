@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Copy, Calendar, MapPin, Loader2 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const API_HOST = IS_PRODUCTION ? 'https://api.form-pass.life' : 'http://localhost:8080';
@@ -49,7 +50,15 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
     const fullUrl = `${currentDomain}/${event.eventCode}`;
     try {
       await navigator.clipboard.writeText(fullUrl);
-      alert('링크가 복사되었습니다!');
+      await Swal.fire({
+        icon: 'success',
+        title: '복사 완료',
+        text: '링크가 복사되었습니다!',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인',
+        timer: 1500,
+        showConfirmButton: false
+      });
     } catch (err) {
       console.error('복사 실패:', err);
     }
@@ -71,7 +80,13 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
     } catch (error) {
       console.error('상태 변경 실패:', error);
       setIsPublic(!newState); // 실패 시 롤백
-      alert('상태 변경 중 오류가 발생했습니다.');
+      await Swal.fire({
+        icon: 'error',
+        title: '변경 실패',
+        text: '상태 변경 중 오류가 발생했습니다.',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
     }
   };
 
@@ -175,7 +190,13 @@ const HostDashboardPage: React.FC = () => {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) {
-          alert('로그인이 필요합니다.');
+          await Swal.fire({
+            icon: 'warning',
+            title: '로그인 필요',
+            text: '로그인이 필요합니다.',
+            confirmButtonColor: '#4F46E5',
+            confirmButtonText: '확인'
+          });
           navigate('/login');
           return;
         }
