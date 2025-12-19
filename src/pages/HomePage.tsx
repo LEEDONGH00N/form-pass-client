@@ -23,11 +23,12 @@ export default function HomePage() {
     setIsLoggedIn(!!token);
   }, []);
 
+  // "시작하기" 버튼 클릭 핸들러 (호스트용)
   const handleStart = () => {
     if (isLoggedIn) {
-      navigate('/dashboard'); // 실제 대시보드 경로로 변경하세요
+      navigate('/host/dashboard'); // 호스트 대시보드로 이동
     } else {
-      navigate('/login');
+      navigate('/login'); // 로그인 페이지로 이동
     }
   };
 
@@ -35,7 +36,8 @@ export default function HomePage() {
     localStorage.removeItem('accessToken');
     setIsLoggedIn(false);
     setIsDropdownOpen(false);
-    window.location.reload();
+    // 상태 초기화를 위해 새로고침 또는 상태 업데이트
+    window.location.reload(); 
   };
 
   return (
@@ -63,7 +65,8 @@ export default function HomePage() {
           <div className="hidden md:flex items-center gap-8">
             <Link to="#" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">기능 소개</Link>
             <Link to="#" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">요금 안내</Link>
-            <Link to="#" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">고객 센터</Link>
+            {/* 게스트용 티켓 조회 메뉴 추가 */}
+            <Link to="/lookup" className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition">내 티켓 조회</Link>
           </div>
 
           {/* 우측 버튼 영역 */}
@@ -89,7 +92,18 @@ export default function HomePage() {
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <button className="block w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition">내 예약 관리</button>
+                    <button 
+                        onClick={() => navigate('/host/dashboard')} 
+                        className="block w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition"
+                    >
+                        관리자 대시보드
+                    </button>
+                    <button 
+                        onClick={() => navigate('/lookup')} 
+                        className="block w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition"
+                    >
+                        내 예약 확인
+                    </button>
                     <div className="h-px bg-slate-100 my-1"></div>
                     <button onClick={handleLogout} className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition">로그아웃</button>
                   </div>
@@ -110,13 +124,17 @@ export default function HomePage() {
                 <div className="flex flex-col gap-4">
                     <Link to="#" className="text-slate-600 font-medium py-2">기능 소개</Link>
                     <Link to="#" className="text-slate-600 font-medium py-2">요금 안내</Link>
+                    <Link to="/lookup" className="text-slate-600 font-medium py-2">내 티켓 조회</Link>
                     {!isLoggedIn ? (
                         <div className="flex flex-col gap-3 mt-4">
                             <Link to="/login" className="w-full text-center py-3 border border-slate-200 rounded-lg font-semibold text-slate-700">로그인</Link>
                             <button onClick={handleStart} className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold shadow-md">무료로 시작하기</button>
                         </div>
                     ) : (
-                        <button onClick={handleLogout} className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-bold mt-4">로그아웃</button>
+                        <>
+                            <button onClick={() => navigate('/host/dashboard')} className="w-full text-left py-2 font-medium text-slate-600">관리자 대시보드</button>
+                            <button onClick={handleLogout} className="w-full py-3 bg-slate-100 text-slate-700 rounded-lg font-bold mt-4">로그아웃</button>
+                        </>
                     )}
                 </div>
             </div>
@@ -155,8 +173,12 @@ export default function HomePage() {
                         지금 바로 만들기
                         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <button className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors">
-                        데모 체험하기
+                    {/* 데모 체험하기 버튼은 '내 티켓 조회' 페이지로 연결하여 체험 유도 가능 */}
+                    <button 
+                        onClick={() => navigate('/lookup')}
+                        className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-xl text-lg font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                    >
+                        내 티켓 조회하기
                     </button>
                 </div>
 
