@@ -342,6 +342,36 @@ const HostEventCreatePage: React.FC = () => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        // 🔥 [추가] 허용된 확장자 검사
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+            // 1. 확장자 확인
+            if (!fileExt || !allowedExtensions.includes(fileExt)) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: '지원하지 않는 파일',
+                    text: `${file.name}은(는) 업로드할 수 없는 파일입니다.\n(jpg, png, gif, webp만 가능)`
+                });
+                e.target.value = ''; 
+                return;
+            }
+
+            // 2. MIME 타입 확인 (이중 체크)
+            if (!file.type.startsWith('image/')) {
+                 await Swal.fire({
+                    icon: 'error',
+                    title: '잘못된 파일 형식',
+                    text: '이미지 파일만 선택해주세요.'
+                });
+                e.target.value = '';
+                return;
+            }
+        }
+
         setIsUploading(true);
         try {
             const token = localStorage.getItem('accessToken');
@@ -453,7 +483,14 @@ const HostEventCreatePage: React.FC = () => {
                                         <p className="text-sm">클릭하여 이미지 추가 (여러 장 가능)</p>
                                     </div>
                                 )}
-                                <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={isUploading} className="hidden" />
+                                <input 
+                                    type="file" 
+                                    accept=".jpg, .jpeg, .png, .gif, .webp, image/*" // 구체적인 확장자 명시
+                                    multiple 
+                                    onChange={handleImageUpload} 
+                                    disabled={isUploading} 
+                                    className="hidden" 
+                                />
                             </label>
                         </div>
 
