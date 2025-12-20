@@ -13,7 +13,7 @@ import {
     Star          // 대표 이미지 아이콘
 } from 'lucide-react';
 
-// 🔥 [추가] dnd-kit 라이브러리 임포트
+// dnd-kit 라이브러리 임포트
 import {
   DndContext,
   closestCenter,
@@ -90,7 +90,7 @@ interface PresignedUrlResponse {
 }
 
 // =================================================================
-// 3. 서브 컴포넌트 (SortableImage)
+// 3. 서브 컴포넌트 (SortableImage) - 드래그 가능한 이미지 카드
 // =================================================================
 interface SortableImageProps {
   id: string; // 이미지 URL을 ID로 사용
@@ -337,12 +337,12 @@ const HostEventCreatePage: React.FC = () => {
         setEventData(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
     };
 
-    // --- 이미지 핸들러 ---
+    // --- 이미지 업로드 핸들러 ---
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        // 🔥 [추가] 허용된 확장자 검사
+        // 🔥 [추가] 허용된 확장자 목록
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
         for (let i = 0; i < files.length; i++) {
@@ -356,7 +356,7 @@ const HostEventCreatePage: React.FC = () => {
                     title: '지원하지 않는 파일',
                     text: `${file.name}은(는) 업로드할 수 없는 파일입니다.\n(jpg, png, gif, webp만 가능)`
                 });
-                e.target.value = ''; 
+                e.target.value = ''; // 입력값 초기화
                 return;
             }
 
@@ -391,12 +391,14 @@ const HostEventCreatePage: React.FC = () => {
                 await axios.put(presignedUrl, file, { headers: { 'Content-Type': fileType } });
                 newImageUrls.push(fileUrl);
             }
+            // 기존 이미지 뒤에 추가
             setEventData(prev => ({ ...prev, images: [...prev.images, ...newImageUrls] }));
         } catch (error) {
             console.error("업로드 실패:", error);
             await Swal.fire({ icon: 'error', title: '업로드 실패', text: '이미지 업로드 중 오류가 발생했습니다.' });
         } finally {
             setIsUploading(false);
+            // 업로드 완료 후 동일한 파일 재선택 가능하도록 input 값 초기화는 필요 시 추가
         }
     };
 
@@ -438,10 +440,10 @@ const HostEventCreatePage: React.FC = () => {
 
             if (isEditMode && eventId) {
                 await axios.put(`${API_BASE_URL}/${eventId}`, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 수정되었습니다.' });
+                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 성공적으로 수정되었습니다.' });
             } else {
                 await axios.post(API_BASE_URL, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 게시되었습니다.' });
+                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 성공적으로 게시되었습니다.' });
             }
             navigate('/host/dashboard');
         } catch (error: any) {
@@ -463,7 +465,7 @@ const HostEventCreatePage: React.FC = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
-                    {/* 1. 이미지 업로드 및 드래그 섹션 (변경됨) */}
+                    {/* 1. 이미지 업로드 및 드래그 섹션 */}
                     <section>
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider">1. 대표 이미지 설정</h2>
@@ -481,11 +483,12 @@ const HostEventCreatePage: React.FC = () => {
                                     <div className="text-gray-500 flex flex-col items-center">
                                         <Upload className="mb-2 text-2xl" />
                                         <p className="text-sm">클릭하여 이미지 추가 (여러 장 가능)</p>
+                                        <p className="text-xs text-gray-400 mt-1">(jpg, png, gif, webp만 가능)</p>
                                     </div>
                                 )}
                                 <input 
                                     type="file" 
-                                    accept=".jpg, .jpeg, .png, .gif, .webp, image/*" // 구체적인 확장자 명시
+                                    accept=".jpg, .jpeg, .png, .gif, .webp, image/*" // 확장자 제한
                                     multiple 
                                     onChange={handleImageUpload} 
                                     disabled={isUploading} 
