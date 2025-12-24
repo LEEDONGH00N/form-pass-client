@@ -1,6 +1,6 @@
 // src/pages/host/HostEventCreatePage.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -9,11 +9,12 @@ import {
     Upload, 
     Trash2, 
     Loader2,
-    GripVertical, // 드래그 핸들 아이콘
-    Star          // 대표 이미지 아이콘
+    GripVertical, 
+    Star,
+    Image as ImageIcon // 에디터 툴바 아이콘용
 } from 'lucide-react';
 
-// dnd-kit 라이브러리 임포트
+// dnd-kit (이미지 순서 변경용)
 import {
   DndContext,
   closestCenter,
@@ -31,6 +32,9 @@ import {
   useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+// 🔥 마크다운 에디터 라이브러리
+import MDEditor, { commands, ICommand } from '@uiw/react-md-editor';
 
 // =================================================================
 // 1. 환경별 URL 및 상수 정의
@@ -90,7 +94,7 @@ interface PresignedUrlResponse {
 }
 
 // =================================================================
-// 3. 서브 컴포넌트 (SortableImage) - 드래그 가능한 이미지 카드
+// 3. 서브 컴포넌트 (SortableImage)
 // =================================================================
 interface SortableImageProps {
   id: string; // 이미지 URL을 ID로 사용
@@ -110,8 +114,8 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
   } = useSortable({ id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: CSS.Translate.toString(transform),
+    transition, 
     zIndex: isDragging ? 50 : 'auto',
   };
 
@@ -119,9 +123,11 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative group bg-gray-100 rounded-lg overflow-hidden border aspect-[4/3] shadow-sm transition-all ${
-        isDragging ? 'scale-105 shadow-xl ring-2 ring-indigo-500 opacity-80' : 'hover:border-indigo-300'
-      }`}
+      className={`relative group bg-gray-100 rounded-lg overflow-hidden border aspect-[4/3] shadow-sm 
+        ${isDragging 
+            ? 'scale-105 shadow-xl ring-2 ring-indigo-500 opacity-80' 
+            : 'hover:border-indigo-300 transition-colors' 
+        }`}
     >
       <img src={url} alt={`event-${index}`} className="w-full h-full object-cover" />
       
@@ -134,12 +140,12 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
       </div>
 
       {/* 컨트롤 오버레이 (Hover 시 표시) */}
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
         {/* 드래그 핸들 */}
         <div 
           {...attributes} 
           {...listeners} 
-          className="p-2 bg-white rounded-full cursor-grab active:cursor-grabbing hover:bg-gray-100 transition text-gray-700"
+          className="p-2 bg-white rounded-full cursor-grab active:cursor-grabbing hover:bg-gray-100 transition-colors text-gray-700"
           title="드래그하여 순서 변경"
         >
           <GripVertical size={18} />
@@ -148,12 +154,12 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
         {/* 삭제 버튼 */}
         <button 
           onClick={(e) => {
-            e.stopPropagation(); // 드래그 이벤트 전파 방지
+            e.stopPropagation();
             onRemove(index);
           }} 
-          className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition"
+          className="p-2 bg-white text-red-500 rounded-full hover:bg-red-50 transition-colors"
           title="삭제"
-          onPointerDown={(e) => e.stopPropagation()} // 드래그 시작 방지
+          onPointerDown={(e) => e.stopPropagation()} 
         >
           <Trash2 size={18} />
         </button>
@@ -187,7 +193,7 @@ const HostEventCreatePage: React.FC = () => {
         title: '',
         location: '',
         images: [] as string[], 
-        description: '',
+        description: '', // 마크다운 텍스트 저장
         questions: initialQuestions,
     });
     
@@ -197,6 +203,9 @@ const HostEventCreatePage: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false); 
     const [isUploading, setIsUploading] = useState(false);
     const [isFetching, setIsFetching] = useState(false); 
+
+    // 🔥 에디터 파일 입력창 제어용 Ref
+    const editorFileInputRef = useRef<HTMLInputElement>(null);
 
     // --- dnd-kit 센서 설정 ---
     const sensors = useSensors(
@@ -294,7 +303,121 @@ const HostEventCreatePage: React.FC = () => {
     }, [isEditMode, eventId, navigate]);
 
 
-    // --- 핸들러 ---
+    // =================================================================
+    // 🔥 [이미지 업로드 로직] S3 공통 함수 및 에디터 핸들러
+    // =================================================================
+
+    // 1. S3 업로드 공통 함수 (썸네일 & 에디터 둘 다 사용)
+    const uploadImageToS3 = async (file: File): Promise<string> => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) throw new Error("No Access Token");
+
+        const fileType = file.type || 'application/octet-stream';
+        
+        // 1) Presigned URL 요청
+        const presignResponse = await axios.post<PresignedUrlResponse>(
+            PRESIGNED_URL_API,
+            { fileName: file.name, contentType: fileType },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const { presignedUrl, fileUrl } = presignResponse.data;
+
+        // 2) S3에 PUT 업로드
+        await axios.put(presignedUrl, file, {
+            headers: { 'Content-Type': fileType }
+        });
+
+        return fileUrl;
+    };
+
+    // 2. 에디터에 이미지 삽입하는 헬퍼 함수
+    const insertImageToEditor = async (file: File) => {
+        try {
+            // 커서 위치 찾기 (없으면 맨 뒤)
+            // textarea 클래스명은 uiw 라이브러리 버전에 따라 다를 수 있으나 보통 아래와 같습니다.
+            const textarea = document.querySelector('.w-md-editor-text-input') as HTMLTextAreaElement;
+            const cursorPosition = textarea?.selectionStart || eventData.description.length;
+
+            const textBefore = eventData.description.substring(0, cursorPosition);
+            const textAfter = eventData.description.substring(cursorPosition);
+
+            // 로딩 중 표시
+            setEventData(prev => ({
+                ...prev,
+                description: `${textBefore}![업로드 중...](${'...'})${textAfter}`
+            }));
+
+            const url = await uploadImageToS3(file);
+
+            // 실제 URL로 교체
+            setEventData(prev => ({
+                ...prev,
+                description: `${textBefore}![image](${url})${textAfter}`
+            }));
+
+        } catch (error) {
+            console.error(error);
+            Swal.fire('오류', '이미지 업로드 실패', 'error');
+        }
+    };
+
+    // 3. 에디터: 붙여넣기(Paste) 핸들러
+    const onPaste = async (event: any) => {
+        const dataTransfer = event.clipboardData;
+        if (dataTransfer.files && dataTransfer.files.length > 0) {
+            event.preventDefault(); 
+            const file = dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                await insertImageToEditor(file);
+            }
+        }
+    };
+
+    // 4. 에디터: 드래그 앤 드롭(Drop) 핸들러
+    const onDrop = async (event: any) => {
+        event.preventDefault();
+        const dataTransfer = event.dataTransfer;
+        if (dataTransfer.files && dataTransfer.files.length > 0) {
+            const file = dataTransfer.files[0];
+            if (file.type.startsWith('image/')) {
+                await insertImageToEditor(file);
+            }
+        }
+    };
+
+    // 5. 에디터: 툴바 아이콘 클릭 시 실행될 함수 -> 숨겨진 input 클릭
+    const handleEditorImageBtnClick = () => {
+        editorFileInputRef.current?.click();
+    };
+
+    // 6. 에디터: 숨겨진 input에서 파일 선택 시 실행
+    const onEditorImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            await insertImageToEditor(file);
+        }
+        e.target.value = ''; // 초기화 (같은 파일 다시 선택 가능)
+    };
+
+    // 7. 커스텀 툴바 커맨드 정의
+    const imageCustomCommand: ICommand = {
+        name: 'image-upload',
+        keyCommand: 'image-upload',
+        buttonProps: { 'aria-label': '이미지 업로드' },
+        icon: (
+            <span className="flex items-center justify-center">
+                <ImageIcon size={12} />
+            </span>
+        ),
+        execute: (state, api) => {
+            handleEditorImageBtnClick(); // 파일 선택창 오픈
+        },
+    };
+
+
+    // --- 일반 핸들러 ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setEventData({ ...eventData, [e.target.name]: e.target.value });
     };
@@ -337,30 +460,27 @@ const HostEventCreatePage: React.FC = () => {
         setEventData(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
     };
 
-    // --- 이미지 업로드 핸들러 ---
+    // --- 대표 이미지(썸네일) 업로드 핸들러 ---
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        // 🔥 [추가] 허용된 확장자 목록
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const fileExt = file.name.split('.').pop()?.toLowerCase();
 
-            // 1. 확장자 확인
             if (!fileExt || !allowedExtensions.includes(fileExt)) {
                 await Swal.fire({
                     icon: 'error',
                     title: '지원하지 않는 파일',
-                    text: `${file.name}은(는) 업로드할 수 없는 파일입니다.\n(jpg, png, gif, webp만 가능)`
+                    text: `${file.name}은(는) 업로드할 수 없습니다.\n(jpg, jpeg, png, gif, webp만 가능)`
                 });
-                e.target.value = ''; // 입력값 초기화
+                e.target.value = ''; 
                 return;
             }
 
-            // 2. MIME 타입 확인 (이중 체크)
             if (!file.type.startsWith('image/')) {
                  await Swal.fire({
                     icon: 'error',
@@ -374,31 +494,19 @@ const HostEventCreatePage: React.FC = () => {
 
         setIsUploading(true);
         try {
-            const token = localStorage.getItem('accessToken');
             const newImageUrls: string[] = [];
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileType = file.type || 'application/octet-stream';
-                
-                const presignResponse = await axios.post<PresignedUrlResponse>(
-                    PRESIGNED_URL_API,
-                    { fileName: file.name, contentType: fileType },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                const { presignedUrl, fileUrl } = presignResponse.data;
-                await axios.put(presignedUrl, file, { headers: { 'Content-Type': fileType } });
-                newImageUrls.push(fileUrl);
+                const url = await uploadImageToS3(file); // 공통 함수 재사용
+                newImageUrls.push(url);
             }
-            // 기존 이미지 뒤에 추가
             setEventData(prev => ({ ...prev, images: [...prev.images, ...newImageUrls] }));
         } catch (error) {
             console.error("업로드 실패:", error);
             await Swal.fire({ icon: 'error', title: '업로드 실패', text: '이미지 업로드 중 오류가 발생했습니다.' });
         } finally {
             setIsUploading(false);
-            // 업로드 완료 후 동일한 파일 재선택 가능하도록 input 값 초기화는 필요 시 추가
         }
     };
 
@@ -406,7 +514,7 @@ const HostEventCreatePage: React.FC = () => {
         setEventData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     };
 
-    // 🔥 [추가] 드래그 종료 핸들러
+    // 드래그 종료 핸들러 (이미지 순서 변경)
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
@@ -418,6 +526,7 @@ const HostEventCreatePage: React.FC = () => {
             }));
         }
     };
+
 
     // --- 게시/수정 핸들러 ---
     const handlePublish = async () => {
@@ -440,10 +549,10 @@ const HostEventCreatePage: React.FC = () => {
 
             if (isEditMode && eventId) {
                 await axios.put(`${API_BASE_URL}/${eventId}`, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 성공적으로 수정되었습니다.' });
+                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 수정되었습니다.' });
             } else {
                 await axios.post(API_BASE_URL, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 성공적으로 게시되었습니다.' });
+                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 게시되었습니다.' });
             }
             navigate('/host/dashboard');
         } catch (error: any) {
@@ -483,12 +592,12 @@ const HostEventCreatePage: React.FC = () => {
                                     <div className="text-gray-500 flex flex-col items-center">
                                         <Upload className="mb-2 text-2xl" />
                                         <p className="text-sm">클릭하여 이미지 추가 (여러 장 가능)</p>
-                                        <p className="text-xs text-gray-400 mt-1">(jpg, png, gif, webp만 가능)</p>
+                                        <p className="text-xs text-gray-400 mt-1">(jpg, jpeg, png, gif, webp만 가능)</p>
                                     </div>
                                 )}
                                 <input 
                                     type="file" 
-                                    accept=".jpg, .jpeg, .png, .gif, .webp, image/*" // 확장자 제한
+                                    accept=".jpg, .jpeg, .png, .gif, .webp, image/*" 
                                     multiple 
                                     onChange={handleImageUpload} 
                                     disabled={isUploading} 
@@ -497,7 +606,7 @@ const HostEventCreatePage: React.FC = () => {
                             </label>
                         </div>
 
-                        {/* 🔥 [변경] dnd-kit 적용된 이미지 그리드 */}
+                        {/* dnd-kit 적용된 이미지 그리드 */}
                         {eventData.images.length > 0 && (
                             <DndContext
                                 sensors={sensors}
@@ -508,7 +617,7 @@ const HostEventCreatePage: React.FC = () => {
                                     <div className="grid grid-cols-4 gap-4">
                                         {eventData.images.map((url, idx) => (
                                             <SortableImage 
-                                                key={url} // URL을 키로 사용 (고유해야 함)
+                                                key={url} 
                                                 id={url} 
                                                 url={url} 
                                                 index={idx} 
@@ -538,9 +647,42 @@ const HostEventCreatePage: React.FC = () => {
                                 <label className="block text-sm font-medium mb-1">장소</label>
                                 <input type="text" name="location" value={eventData.location} onChange={handleChange} placeholder="예: 서울 강남구 테헤란로 123" className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500"/>
                             </div>
+                            
+                            {/* 🔥 [수정] 마크다운 에디터 적용 부분 */}
                             <div>
                                 <label className="block text-sm font-medium mb-1">설명</label>
-                                <textarea name="description" value={eventData.description} onChange={handleChange} rows={5} placeholder="행사에 대한 자세한 설명을 적어주세요." className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"/>
+                                <div data-color-mode="light" onPaste={onPaste} onDrop={onDrop}>
+                                    
+                                    {/* 🔥 에디터용 숨겨진 파일 인풋 */}
+                                    <input 
+                                        type="file" 
+                                        ref={editorFileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={onEditorImageFileChange}
+                                    />
+
+                                    <MDEditor
+                                        value={eventData.description}
+                                        onChange={(val) => setEventData(prev => ({ ...prev, description: val || '' }))}
+                                        height={400}
+                                        preview="edit"
+                                        textareaProps={{
+                                            placeholder: '행사 내용을 입력하세요. 상단 이미지 버튼을 눌러 이미지를 추가할 수 있습니다.'
+                                        }}
+                                        commands={[
+                                            commands.bold, commands.italic, commands.strikethrough, commands.hr,
+                                            commands.title, commands.divider,
+                                            commands.link, commands.quote, commands.code, commands.codeBlock,
+                                            commands.divider,
+                                            imageCustomCommand, // 🔥 커스텀 이미지 버튼 적용
+                                            commands.table, commands.help
+                                        ]}
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    * 팁: 이미지를 복사해서 붙여넣거나(Ctrl+V), 드래그해서 넣거나, 상단 이미지 버튼을 눌러 추가하세요.
+                                </p>
                             </div>
                         </div>
                     </section>
@@ -605,7 +747,7 @@ const HostEventCreatePage: React.FC = () => {
                 </div>
             </aside>
 
-            {/* [오른쪽 패널] 모바일 미리보기 */}
+             {/* [오른쪽 패널] 모바일 미리보기 */}
             <main className="w-1/3 bg-gray-200 flex items-center justify-center p-8 relative"> 
                 <div className="w-[375px] h-[720px] bg-white rounded-[3rem] border-[12px] border-gray-900 shadow-2xl overflow-hidden relative flex flex-col">
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-40 h-7 bg-gray-900 rounded-b-xl z-30"></div>
@@ -639,11 +781,19 @@ const HostEventCreatePage: React.FC = () => {
                                 <span className="flex items-center gap-1"><i className="far fa-calendar"></i> {mainEventDate || '0000-00-00'}</span>
                                 <span className="flex items-center gap-1"><i className="fas fa-map-marker-alt"></i> {eventData.location || '장소 미정'}</span>
                             </div>
-                            {eventData.description && (
-                                <div className="mb-8 text-sm text-gray-600 whitespace-pre-wrap leading-relaxed border-l-2 border-gray-200 pl-3">
-                                    {eventData.description}
+                            
+                            {/* 🔥 [수정] 설명 미리보기 (마크다운 렌더링) */}
+                            {eventData.description ? (
+                                <div className="mb-8 text-sm text-gray-600 border-l-2 border-gray-200 pl-3 leading-relaxed" data-color-mode="light">
+                                    <MDEditor.Markdown 
+                                        source={eventData.description} 
+                                        style={{ backgroundColor: 'white', color: '#374151', fontSize: '0.875rem' }} 
+                                    />
                                 </div>
+                            ) : (
+                                <div className="mb-8 text-sm text-gray-400">내용이 없습니다.</div>
                             )}
+
                             <h3 className="font-bold text-gray-800 mb-3 text-sm">티켓 선택</h3>
                             <div className="grid grid-cols-2 gap-2 mb-8">
                                 {localSchedules.map((s, i) => (

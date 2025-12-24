@@ -22,7 +22,6 @@ function App() {
         <Route path="/host/dashboard" element={<HostDashboardPage />} />
         <Route path="/:eventCode" element={<EventLandingPage />} />
         <Route path="/host/events/:eventId" element={<HostEventDetailPage />} />
-        {/* 3. 게스트 (참여자) - 추가된 라우트 */}
         <Route path="/lookup" element={<GuestTicketPage />} />
         <Route path="/ticket/:qrToken" element={<GuestTicketPage />} />
         <Route path="/lookup" element={<GuestLookupPage />} />

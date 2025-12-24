@@ -1,55 +1,56 @@
-// src/types/event.ts
-
-// ScheduleRequest DTO에 대응
-export interface ScheduleRequest {
-  startTime: string; 
-  endTime: string;   
-  capacity: number;  
+export interface Schedule {
+  id: number;
+  startTime: string;
+  endTime: string;
+  maxCapacity: number;
+  reservedCount: number;
 }
 
-// QuestionRequest DTO에 대응 (간단하게 정의)
-export interface QuestionRequest {
-  type: 'TEXT' | 'SELECT' | 'CHECKBOX'; 
-  label: string; 
-  required: boolean; 
+export interface Question {
+  id: number;
+  questionText: string;
+  questionType: 'TEXT' | 'SELECT' | 'CHECKBOX';
+  isRequired: boolean;
 }
 
-// CreateEventRequest DTO에 대응
-export interface CreateEventRequest {
+export interface EventDetail {
   title: string;
-  location: string; // 현재 UI에는 없으나 DTO에 있으므로 추가
-  thumbnailUrl: string;
+  location: string;
+  images: string[];
+  thumbnailUrl?: string;
   description: string;
-  schedules: ScheduleRequest[];
-  questions: QuestionRequest[];
+  schedules: Schedule[];
+  questions: Question[];
+  hostName?: string;
 }
 
-export interface EventResponse {
-    id: number; // DB에서 생성된 이벤트 ID
-    title: string;
-    location: string;
-    thumbnailUrl: string;
-    description: string;
-    schedules: ScheduleResponse[]; // 위에서 정의한 ScheduleResponse 타입 사용
-    questions: QuestionResponse[]; // 위에서 정의한 QuestionResponse 타입 사용
+export interface Answer {
+  questionId: number;
+  answerText: string;
 }
 
-// ScheduleResponse DTO에 대응
-export interface ScheduleResponse {
-    id: number;           // DB에서 생성된 스케줄 ID
-    startTime: string;    // 백엔드의 LocalDateTime (예: "2025-12-30T14:00:00")
-    endTime: string;      // 백엔드의 LocalDateTime
-    maxCapacity: number;  // 최대 정원 (DTO: maxCapacity)
-    reservedCount: number; // 현재 예약된 인원 수
+export interface ReservationRequest {
+  scheduleId: number;
+  guestName: string;
+  guestPhoneNumber: string;
+  ticketCount: number;
+  answers: Answer[];
 }
 
-// 백엔드의 QuestionType Enum에 대응 (필요시 상세 정의)
-export type QuestionType = 'TEXT' | 'SELECT' | 'CHECKBOX'; 
-
-// QuestionResponse DTO에 대응
-export interface QuestionResponse {
-    id: number;              // DB에서 생성된 질문 ID
-    questionText: string;    // 질문 내용 (DTO: questionText)
-    questionType: QuestionType; // 질문 유형 (DTO: questionType)
-    isRequired: boolean;     // 필수 여부 (DTO: isRequired)
+export interface ReservationResponse {
+  qrToken: string;
 }
+
+export interface ReservationLookupRequest {
+  guestName: string;
+  guestPhoneNumber: string;
+}
+
+export interface ReservationLookupResponse {
+  qrToken: string;
+  eventTitle: string;
+  guestName: string;
+  createdAt: string;
+}
+
+export type ErrorType = 'NONE' | 'PRIVATE' | 'NOT_FOUND' | 'SERVER_ERROR';
