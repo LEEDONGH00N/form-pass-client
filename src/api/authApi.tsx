@@ -36,13 +36,16 @@ export interface VerifyRequest {
 export const authApi = {
   // 로그인
   login: (data: LoginRequest) => api.post('/api/auth/login', data),
-  
+
+  // 로그아웃
+  logout: () => api.post('/api/auth/logout'),
+
   // 회원가입
   signup: (data: SignupRequest) => api.post('/api/auth/signup', data),
-  
+
   // 인증 메일 발송
   sendEmail: (data: EmailRequest) => api.post('/api/auth/email/send', data),
-  
+
   // 인증 코드 검증
   verifyEmail: (data: VerifyRequest) => api.post('/api/auth/email/verify', data),
 };

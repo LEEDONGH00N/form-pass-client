@@ -70,12 +70,10 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
     setIsPublic(newState); // 낙관적 업데이트
 
     try {
-      const token = localStorage.getItem('accessToken');
-      // API 경로 수정: /api/host/events/{id}/visibility (또는 /api/events/{id}/visibility 등 백엔드 설정에 맞춤)
       await axios.patch(
         `${API_HOST}/api/host/events/${event.id}/visibility`,
         { isPublic: newState },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { withCredentials: true }
       );
     } catch (error) {
       console.error('상태 변경 실패:', error);
@@ -188,8 +186,13 @@ const HostDashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
+        const response = await axios.get<Event[]>(EVENTS_API_URL, {
+          withCredentials: true
+        });
+        setEvents(response.data);
+      } catch (error: any) {
+        console.error('이벤트 목록 불러오기 실패:', error);
+        if (error.response?.status === 401 || error.response?.status === 403) {
           await Swal.fire({
             icon: 'warning',
             title: '로그인 필요',
@@ -198,15 +201,7 @@ const HostDashboardPage: React.FC = () => {
             confirmButtonText: '확인'
           });
           navigate('/login');
-          return;
         }
-
-        const response = await axios.get<Event[]>(EVENTS_API_URL, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setEvents(response.data);
-      } catch (error) {
-        console.error('이벤트 목록 불러오기 실패:', error);
       } finally {
         setIsLoading(false);
       }

@@ -8,22 +8,23 @@ import {
 } from '../types/event';
 import { API_ENDPOINTS } from '../constants/api';
 
+// Axios 인스턴스 생성 (쿠키 기반 인증)
+const apiClient = axios.create({
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 interface FetchEventConfig {
   eventCode: string;
-  accessToken?: string | null;
 }
 
 export const fetchEventDetails = async ({
   eventCode,
-  accessToken,
 }: FetchEventConfig): Promise<EventDetail> => {
-  const config = accessToken
-    ? { headers: { Authorization: `Bearer ${accessToken}` } }
-    : {};
-
-  const response = await axios.get<EventDetail>(
-    API_ENDPOINTS.EVENTS(eventCode),
-    config
+  const response = await apiClient.get<EventDetail>(
+    API_ENDPOINTS.EVENTS(eventCode)
   );
 
   const data = response.data;
@@ -40,7 +41,7 @@ export const fetchEventDetails = async ({
 export const createReservation = async (
   request: ReservationRequest
 ): Promise<ReservationResponse> => {
-  const response = await axios.post<ReservationResponse>(
+  const response = await apiClient.post<ReservationResponse>(
     API_ENDPOINTS.RESERVATIONS,
     request
   );
@@ -50,7 +51,7 @@ export const createReservation = async (
 export const lookupReservations = async (
   request: ReservationLookupRequest
 ): Promise<ReservationLookupResponse[]> => {
-  const response = await axios.post<ReservationLookupResponse[]>(
+  const response = await apiClient.post<ReservationLookupResponse[]>(
     API_ENDPOINTS.RESERVATIONS_LOOKUP,
     request
   );

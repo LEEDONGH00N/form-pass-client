@@ -43,7 +43,20 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const SERVICE_DOMAIN = IS_PRODUCTION ? 'form-pass.life' : 'localhost:3000';
 const API_HOST = IS_PRODUCTION ? 'https://api.form-pass.life' : 'http://localhost:8080';
 const API_BASE_URL = `${API_HOST}/api/host/events`;
-const PRESIGNED_URL_API = `${API_HOST}/api/host/s3/presigned-url`; 
+const PRESIGNED_URL_API = `${API_HOST}/api/host/s3/presigned-url`;
+
+// SweetAlert2 공통 스타일 설정 (Form PASS 브랜드 테마)
+const SWAL_THEME = {
+  customClass: {
+    popup: 'rounded-[2rem] shadow-2xl',
+    title: 'text-xl font-bold text-slate-900',
+    htmlContainer: 'text-slate-600 text-sm',
+    confirmButton: 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-6 py-3 mx-1 shadow-md hover:shadow-lg transition-all',
+    cancelButton: 'bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl px-6 py-3 mx-1 transition-all',
+    denyButton: 'bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl px-6 py-3 mx-1 transition-all',
+  },
+  buttonsStyling: false,
+}; 
 
 // =================================================================
 // 2. DTO 인터페이스 정의
@@ -255,15 +268,8 @@ const HostEventCreatePage: React.FC = () => {
 
             setIsFetching(true);
             try {
-                const token = localStorage.getItem('accessToken');
-                if (!token) {
-                    await Swal.fire({ icon: 'warning', title: '로그인 필요', text: '로그인이 필요합니다.' });
-                    navigate('/login');
-                    return;
-                }
-
                 const response = await axios.get<EventResponse>(`${API_BASE_URL}/${eventId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    withCredentials: true
                 });
 
                 const data = response.data;
@@ -291,10 +297,27 @@ const HostEventCreatePage: React.FC = () => {
                         maxCapacity: sch.maxCapacity
                     })));
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
-                await Swal.fire({ icon: 'error', title: '오류', text: '데이터를 불러오지 못했습니다.' });
-                navigate('/host/dashboard');
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    await Swal.fire({
+                        icon: 'warning',
+                        title: '🔐 로그인 필요',
+                        text: '로그인이 필요합니다.',
+                        confirmButtonText: '로그인하러 가기',
+                        ...SWAL_THEME,
+                    });
+                    navigate('/login');
+                } else {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: '데이터 로드 실패',
+                        text: '이벤트 정보를 불러오지 못했습니다.',
+                        confirmButtonText: '확인',
+                        ...SWAL_THEME,
+                    });
+                    navigate('/host/dashboard');
+                }
             } finally {
                 setIsFetching(false);
             }
@@ -309,16 +332,13 @@ const HostEventCreatePage: React.FC = () => {
 
     // 1. S3 업로드 공통 함수 (썸네일 & 에디터 둘 다 사용)
     const uploadImageToS3 = async (file: File): Promise<string> => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error("No Access Token");
-
         const fileType = file.type || 'application/octet-stream';
-        
+
         // 1) Presigned URL 요청
         const presignResponse = await axios.post<PresignedUrlResponse>(
             PRESIGNED_URL_API,
             { fileName: file.name, contentType: fileType },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { withCredentials: true }
         );
 
         const { presignedUrl, fileUrl } = presignResponse.data;
@@ -358,7 +378,13 @@ const HostEventCreatePage: React.FC = () => {
 
         } catch (error) {
             console.error(error);
-            Swal.fire('오류', '이미지 업로드 실패', 'error');
+            Swal.fire({
+                icon: 'error',
+                title: '이미지 업로드 실패',
+                text: '에디터에 이미지를 삽입하지 못했습니다.',
+                confirmButtonText: '확인',
+                ...SWAL_THEME,
+            });
         }
     };
 
@@ -454,7 +480,13 @@ const HostEventCreatePage: React.FC = () => {
 
     const handleRemoveQuestion = async (index: number) => {
         if (eventData.questions[index].isRequired) {
-            await Swal.fire({ icon: 'warning', title: '삭제 불가', text: '필수 질문은 삭제할 수 없습니다.' });
+            await Swal.fire({
+                icon: 'warning',
+                title: '⚠️ 삭제 불가',
+                text: '필수 질문은 삭제할 수 없습니다.',
+                confirmButtonText: '확인',
+                ...SWAL_THEME,
+            });
             return;
         }
         setEventData(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== index) }));
@@ -474,10 +506,12 @@ const HostEventCreatePage: React.FC = () => {
             if (!fileExt || !allowedExtensions.includes(fileExt)) {
                 await Swal.fire({
                     icon: 'error',
-                    title: '지원하지 않는 파일',
-                    text: `${file.name}은(는) 업로드할 수 없습니다.\n(jpg, jpeg, png, gif, webp만 가능)`
+                    title: '🚫 지원하지 않는 파일 형식',
+                    html: `<strong>${file.name}</strong>은(는) 업로드할 수 없습니다.<br><br>📌 허용 형식: <strong>jpg, jpeg, png, gif, webp</strong>`,
+                    confirmButtonText: '확인',
+                    ...SWAL_THEME,
                 });
-                e.target.value = ''; 
+                e.target.value = '';
                 return;
             }
 
@@ -485,7 +519,9 @@ const HostEventCreatePage: React.FC = () => {
                  await Swal.fire({
                     icon: 'error',
                     title: '잘못된 파일 형식',
-                    text: '이미지 파일만 선택해주세요.'
+                    text: '이미지 파일만 선택해주세요.',
+                    confirmButtonText: '확인',
+                    ...SWAL_THEME,
                 });
                 e.target.value = '';
                 return;
@@ -504,7 +540,13 @@ const HostEventCreatePage: React.FC = () => {
             setEventData(prev => ({ ...prev, images: [...prev.images, ...newImageUrls] }));
         } catch (error) {
             console.error("업로드 실패:", error);
-            await Swal.fire({ icon: 'error', title: '업로드 실패', text: '이미지 업로드 중 오류가 발생했습니다.' });
+            await Swal.fire({
+                icon: 'error',
+                title: '📤 업로드 실패',
+                text: '이미지 업로드 중 오류가 발생했습니다. 파일 크기나 네트워크를 확인해주세요.',
+                confirmButtonText: '확인',
+                ...SWAL_THEME,
+            });
         } finally {
             setIsUploading(false);
         }
@@ -532,13 +574,18 @@ const HostEventCreatePage: React.FC = () => {
     const handlePublish = async () => {
         if (isSaving || isUploading) return;
         if (!eventData.title.trim() || localSchedules.length === 0 || eventData.images.length === 0) {
-            await Swal.fire({ icon: 'warning', title: '입력 확인', text: '행사명, 일정, 이미지는 필수입니다.' });
+            await Swal.fire({
+                icon: 'warning',
+                title: '⚠️ 필수 정보 누락',
+                html: '다음 항목은 필수입니다:<br><br>✓ 행사명<br>✓ 일정 (최소 1개)<br>✓ 대표 이미지 (최소 1개)',
+                confirmButtonText: '확인',
+                ...SWAL_THEME,
+            });
             return;
         }
 
         setIsSaving(true);
         try {
-            const token = localStorage.getItem('accessToken');
             const schedulesToRequest: ScheduleRequest[] = localSchedules.map(schedule => ({
                 startTime: toIsoString(mainEventDate, schedule.timeStart),
                 endTime: toIsoString(mainEventDate, schedule.timeEnd),
@@ -548,15 +595,37 @@ const HostEventCreatePage: React.FC = () => {
             const finalRequestData: CreateEventRequest = { ...eventData, schedules: schedulesToRequest };
 
             if (isEditMode && eventId) {
-                await axios.put(`${API_BASE_URL}/${eventId}`, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '수정 완료', text: '이벤트가 수정되었습니다.' });
+                await axios.put(`${API_BASE_URL}/${eventId}`, finalRequestData, { withCredentials: true });
+                await Swal.fire({
+                    icon: 'success',
+                    title: '✅ 수정 완료',
+                    text: '이벤트가 성공적으로 수정되었습니다.',
+                    confirmButtonText: '대시보드로',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    ...SWAL_THEME,
+                });
             } else {
-                await axios.post(API_BASE_URL, finalRequestData, { headers: { Authorization: `Bearer ${token}` } });
-                await Swal.fire({ icon: 'success', title: '게시 완료', text: '이벤트가 게시되었습니다.' });
+                await axios.post(API_BASE_URL, finalRequestData, { withCredentials: true });
+                await Swal.fire({
+                    icon: 'success',
+                    title: '🎉 게시 완료',
+                    text: '이벤트가 성공적으로 게시되었습니다!',
+                    confirmButtonText: '대시보드로',
+                    timer: 2000,
+                    timerProgressBar: true,
+                    ...SWAL_THEME,
+                });
             }
             navigate('/host/dashboard');
         } catch (error: any) {
-            await Swal.fire({ icon: 'error', title: '실패', text: error.response?.data?.message || '오류가 발생했습니다.' });
+            await Swal.fire({
+                icon: 'error',
+                title: '작업 실패',
+                text: error.response?.data?.message || '이벤트 저장 중 오류가 발생했습니다.',
+                confirmButtonText: '확인',
+                ...SWAL_THEME,
+            });
         } finally {
             setIsSaving(false);
         }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  ArrowRight, 
-  Menu, 
+import {
+  ArrowRight,
+  Menu,
   X,
   ChevronDown,
   MousePointer2,
@@ -12,6 +12,7 @@ import {
   BarChart3,
   Layers
 } from 'lucide-react';
+import { authApi } from '../api/authApi';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -21,8 +22,9 @@ export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    setIsLoggedIn(!!token);
+    // TODO: 로그인 상태를 확인하려면 /api/auth/me 같은 엔드포인트를 호출하거나
+    // 전역 상태 관리를 사용해야 합니다. 현재는 임시로 false로 설정
+    setIsLoggedIn(false);
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -39,11 +41,15 @@ export default function HomePage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    setIsLoggedIn(false);
-    setIsDropdownOpen(false);
-    window.location.reload(); 
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+      setIsLoggedIn(false);
+      setIsDropdownOpen(false);
+      window.location.reload();
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
   };
 
   return (

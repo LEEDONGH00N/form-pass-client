@@ -3,15 +3,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
-import { AxiosResponse } from 'axios';
 import Swal from 'sweetalert2';
-
-// 서버의 로그인 응답 데이터 구조 정의
-interface LoginResponseData {
-  accessToken: string;
-  // refreshToken?: string;
-  // userDetails?: any;
-}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -24,36 +16,18 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 1. API 호출
-      const response: AxiosResponse<LoginResponseData> = await authApi.login(formData);
-      
-      // 2. 토큰 저장 로직
-      const accessToken = response.data.accessToken; 
-      
-      if (accessToken) {
-        localStorage.setItem('accessToken', accessToken);
+      // API 호출 (쿠키로 인증 정보가 저장됨)
+      await authApi.login(formData);
 
-        await Swal.fire({
-          icon: 'success',
-          title: '로그인 성공',
-          text: '환영합니다!',
-          confirmButtonColor: '#4F46E5',
-          confirmButtonText: '확인'
-        });
+      await Swal.fire({
+        icon: 'success',
+        title: '로그인 성공',
+        text: '환영합니다!',
+        confirmButtonColor: '#4F46E5',
+        confirmButtonText: '확인'
+      });
 
-        // ⭐⭐⭐ 수정된 부분: 홈('/') 대신 대시보드('/host/dashboard')로 이동 ⭐⭐⭐
-        navigate('/host/dashboard');
-      } else {
-         // 토큰을 받지 못했으나 200 OK를 받은 경우
-        await Swal.fire({
-          icon: 'warning',
-          title: '경고',
-          text: '로그인은 성공했지만, 토큰 정보가 불완전합니다. 개발자에게 문의하세요.',
-          confirmButtonColor: '#4F46E5',
-          confirmButtonText: '확인'
-        });
-        console.error("로그인 성공 응답 데이터:", response.data);
-      }
+      navigate('/host/dashboard');
 
     } catch (error) {
       console.error(error);

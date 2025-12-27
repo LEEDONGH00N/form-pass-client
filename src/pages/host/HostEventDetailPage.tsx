@@ -82,9 +82,8 @@ const HostEventDetailPage: React.FC = () => {
     const fetchData = async () => {
         if (!eventId) return;
         try {
-            const token = localStorage.getItem('accessToken');
             const response = await axios.get<ScheduleStatusResponse[]>(API_SCHEDULE_STATUS_URL(eventId), {
-                headers: { Authorization: `Bearer ${token}` }
+                withCredentials: true
             });
 
             const data = response.data;
@@ -121,9 +120,8 @@ const HostEventDetailPage: React.FC = () => {
         if (!result.isConfirmed) return;
 
         try {
-            const token = localStorage.getItem('accessToken');
             await axios.patch(API_MANUAL_CHECKIN_URL(reservationId), {}, {
-                headers: { Authorization: `Bearer ${token}` }
+                withCredentials: true
             });
             await Swal.fire({
                 icon: 'success',
@@ -155,11 +153,9 @@ const HostEventDetailPage: React.FC = () => {
         setScanStatus('processing');
 
         try {
-            const token = localStorage.getItem('accessToken');
-            
-            const response = await axios.post(API_QR_VERIFY_URL, 
-                { qrToken: text }, 
-                { headers: { Authorization: `Bearer ${token}` } }
+            const response = await axios.post(API_QR_VERIFY_URL,
+                { qrToken: text },
+                { withCredentials: true }
             );
 
             const { guestName, message } = response.data;
