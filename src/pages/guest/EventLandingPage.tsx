@@ -32,7 +32,7 @@ import {
   lookupReservations,
   isAxiosError,
 } from '../../api/eventApi';
-import { IMAGE_CAROUSEL_INTERVAL_MS, PHONE_NUMBER_MIN_LENGTH, SWAL_COLORS } from '../../constants/ui';
+import { IMAGE_CAROUSEL_INTERVAL_MS, PHONE_NUMBER_MIN_LENGTH } from '../../constants/ui';
 
 const GuestEventPage: React.FC = () => {
   const { eventCode } = useParams<{ eventCode: string }>();
@@ -132,21 +132,6 @@ const GuestEventPage: React.FC = () => {
     };
   }, [currentImageIdx, event]);
 
-  const nextImage = (): void => {
-    if (event) {
-      setCurrentImageIdx((prev) =>
-        prev === event.images.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const prevImage = (): void => {
-    if (event) {
-      setCurrentImageIdx((prev) =>
-        prev === 0 ? event.images.length - 1 : prev - 1
-      );
-    }
-  };
 
   // --- 핸들러: 내 예약 조회 ---
   const handleCheckReservation = async (): Promise<void> => {

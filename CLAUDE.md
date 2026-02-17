@@ -52,10 +52,10 @@ src/
 
 ### API Configuration
 - Production: `https://api.form-pass.life` (when `NODE_ENV === 'production'`)
-- Development: `http://localhost:8080`
+- Development: `http://localhost:8080` (override with `REACT_APP_API_URL` env var)
 - Two axios instances:
   - `authAxios` from `authApi.tsx` - includes Bearer token interceptor for authenticated requests
-  - `apiClient` from `eventApi.ts` - for public guest-facing endpoints
+  - `apiClient` from `eventApi.ts` - for public guest-facing endpoints (uses `API_HOST` from constants)
 
 ### Domain Models
 Key types in `src/types/event.ts`:

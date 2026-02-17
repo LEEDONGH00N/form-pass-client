@@ -184,7 +184,20 @@ const SortableImage = ({ id, url, index, onRemove }: SortableImageProps) => {
 };
 
 // =================================================================
-// 4. 메인 컴포넌트 로직
+// 4. 초기값 상수 (컴포넌트 외부에 정의)
+// =================================================================
+
+const INITIAL_QUESTIONS: QuestionRequest[] = [
+    { questionType: 'TEXT', questionText: '이름', isRequired: true },
+    { questionType: 'TEXT', questionText: '연락처', isRequired: true },
+];
+
+const INITIAL_LOCAL_SCHEDULES: LocalScheduleState[] = [
+    { timeStart: '14:00', timeEnd: '15:00', maxCapacity: 30 },
+];
+
+// =================================================================
+// 5. 메인 컴포넌트 로직
 // =================================================================
 
 const HostEventCreatePage: React.FC = () => {
@@ -195,24 +208,15 @@ const HostEventCreatePage: React.FC = () => {
     // --- 상태 정의 ---
     const [mainEventDate, setMainEventDate] = useState('');
 
-    const initialQuestions: QuestionRequest[] = [
-        { questionType: 'TEXT', questionText: '이름', isRequired: true },
-        { questionType: 'TEXT', questionText: '연락처', isRequired: true },
-    ];
-
-    const initialLocalSchedules: LocalScheduleState[] = [
-        { timeStart: '14:00', timeEnd: '15:00', maxCapacity: 30 },
-    ];
-
     const [eventData, setEventData] = useState({
         title: '',
         location: '',
         images: [] as string[],
         description: '', // 마크다운 텍스트 저장
-        questions: initialQuestions,
+        questions: INITIAL_QUESTIONS,
     });
 
-    const [localSchedules, setLocalSchedules] = useState<LocalScheduleState[]>(initialLocalSchedules);
+    const [localSchedules, setLocalSchedules] = useState<LocalScheduleState[]>(INITIAL_LOCAL_SCHEDULES);
     const [previewCode, setPreviewCode] = useState('AbC1d');
 
     const [isSaving, setIsSaving] = useState(false);
@@ -288,7 +292,7 @@ const HostEventCreatePage: React.FC = () => {
                     location: data.location || '',
                     images: loadedImages,
                     description: data.description || '',
-                    questions: data.questions || initialQuestions,
+                    questions: data.questions || INITIAL_QUESTIONS,
                 });
 
                 if (data.eventCode) setPreviewCode(data.eventCode);
