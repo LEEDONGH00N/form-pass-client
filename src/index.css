@@ -11,3 +11,215 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ===== Form PASS Premium UI Components ===== */
+
+@layer components {
+  /* Glassmorphism 효과 */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-white/10;
+  }
+
+  /* 프리미엄 카드 스타일 */
+  .card-premium {
+    @apply bg-white rounded-2xl border border-gray-100/80 shadow-lg shadow-gray-100/50;
+    @apply hover:shadow-xl hover:shadow-blue-100/30 hover:-translate-y-0.5;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* 통일된 입력 필드 스타일 */
+  .input-standard {
+    @apply w-full px-4 py-3.5 bg-gray-50/50 border border-gray-200/80 rounded-xl;
+    @apply text-gray-900 placeholder:text-gray-400;
+    @apply focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10;
+    @apply transition-all duration-200 outline-none;
+  }
+
+  /* 기본 버튼 스타일 */
+  .btn-primary {
+    @apply px-6 py-3.5 rounded-xl font-bold text-white;
+    @apply bg-gradient-to-r from-blue-600 to-blue-700;
+    @apply hover:from-blue-700 hover:to-blue-800;
+    @apply shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50;
+    @apply hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200;
+  }
+
+  /* 보조 버튼 스타일 */
+  .btn-secondary {
+    @apply px-6 py-3.5 rounded-xl font-bold;
+    @apply bg-white border border-gray-200 text-gray-700;
+    @apply hover:bg-gray-50 hover:border-gray-300;
+    @apply active:scale-[0.98];
+    @apply transition-all duration-200;
+  }
+
+  /* 그라데이션 텍스트 */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent;
+  }
+
+  /* 배지 스타일 */
+  .badge-primary {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg;
+    @apply bg-gradient-to-r from-blue-50 to-cyan-50;
+    @apply text-blue-600 text-xs font-bold;
+    @apply border border-blue-100/50;
+  }
+
+  /* 섹션 헤더 번호 배지 */
+  .section-badge {
+    @apply w-7 h-7 rounded-lg flex items-center justify-center;
+    @apply bg-gradient-to-br from-blue-500 to-blue-600;
+    @apply text-white text-sm font-bold shadow-md shadow-blue-200/50;
+  }
+}
+
+/* ===== SweetAlert2 Custom Theme ===== */
+.swal2-popup {
+  border-radius: 1.5rem !important;
+  padding: 2rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.swal2-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  padding: 0 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.swal2-html-container {
+  font-size: 0.95rem !important;
+  color: #64748b !important;
+  margin: 0.75rem 0 1.5rem 0 !important;
+  line-height: 1.6 !important;
+}
+
+.swal2-icon {
+  margin: 0 auto 1.25rem auto !important;
+  border-width: 3px !important;
+  width: 4rem !important;
+  height: 4rem !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #22c55e !important;
+  color: #22c55e !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-line-tip,
+.swal2-icon.swal2-success .swal2-success-line-long {
+  background-color: #22c55e !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+  border-color: rgba(34, 197, 94, 0.3) !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark-line-left,
+.swal2-icon.swal2-error .swal2-x-mark-line-right {
+  background-color: #ef4444 !important;
+}
+
+.swal2-icon.swal2-warning {
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+.swal2-icon.swal2-info {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+.swal2-icon.swal2-question {
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
+}
+
+.swal2-actions {
+  margin-top: 0 !important;
+  gap: 0.75rem !important;
+}
+
+.swal2-confirm {
+  background: linear-gradient(to right, #3b82f6, #2563eb) !important;
+  border-radius: 0.75rem !important;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  padding: 0.75rem 1.75rem !important;
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-confirm:hover {
+  background: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+  box-shadow: 0 6px 20px 0 rgba(59, 130, 246, 0.5) !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal2-confirm:active {
+  transform: scale(0.98) !important;
+}
+
+.swal2-cancel {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  padding: 0.75rem 1.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-cancel:hover {
+  background: #e2e8f0 !important;
+}
+
+.swal2-deny {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+  font-size: 0.95rem !important;
+  padding: 0.75rem 1.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-deny:hover {
+  background: #fee2e2 !important;
+}
+
+.swal2-input {
+  border-radius: 0.75rem !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.swal2-timer-progress-bar {
+  background: linear-gradient(to right, #3b82f6, #06b6d4) !important;
+}
+
+.swal2-validation-message {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.875rem !important;
+}

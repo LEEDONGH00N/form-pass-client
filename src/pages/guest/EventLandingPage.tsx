@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import MDEditor from '@uiw/react-md-editor'; // 🔥 마크다운 뷰어 추가
+import MDEditor from '@uiw/react-md-editor';
 import {
   MapPin,
   Calendar,
@@ -154,7 +154,7 @@ const GuestEventPage: React.FC = () => {
     const defaultPhone = phone;
 
     const { value: formValues } = await Swal.fire({
-      title: '🎟️ 내 예약 조회',
+      title: '내 예약 조회',
       html: `
         <div class="text-left text-sm text-gray-600 mb-4">예약 시 입력한 정보를 입력해주세요.</div>
         <input id="swal-input1" class="swal2-input !m-0 !mb-3 !w-full !h-12 !text-base" placeholder="이름 (예: 홍길동)" value="${defaultName}">
@@ -164,7 +164,7 @@ const GuestEventPage: React.FC = () => {
       showCancelButton: true,
       confirmButtonText: '티켓 찾기',
       cancelButtonText: '닫기',
-      confirmButtonColor: '#4f46e5',
+      confirmButtonColor: '#3b82f6',
       customClass: {
         popup: 'rounded-2xl',
         confirmButton: 'rounded-xl px-6 py-3 font-bold',
@@ -198,7 +198,7 @@ const GuestEventPage: React.FC = () => {
             text: `${latestTicket.guestName}님의 티켓 페이지로 이동합니다.`,
             timer: 1500,
             showConfirmButton: false,
-            confirmButtonColor: '#4f46e5',
+            confirmButtonColor: '#3b82f6',
           });
 
           navigate(`/ticket/${latestTicket.qrToken}`);
@@ -207,7 +207,7 @@ const GuestEventPage: React.FC = () => {
             icon: 'error',
             title: '내역 없음',
             text: '일치하는 예매 내역이 없습니다. 정보를 다시 확인해주세요.',
-            confirmButtonColor: '#4f46e5',
+            confirmButtonColor: '#3b82f6',
             customClass: { popup: 'rounded-2xl' }
           });
         }
@@ -216,7 +216,7 @@ const GuestEventPage: React.FC = () => {
           icon: 'error',
           title: '오류 발생',
           text: '서버와 통신 중 문제가 발생했습니다.',
-          confirmButtonColor: '#4f46e5',
+          confirmButtonColor: '#3b82f6',
           customClass: { popup: 'rounded-2xl' }
         });
       }
@@ -230,7 +230,7 @@ const GuestEventPage: React.FC = () => {
         icon: 'warning',
         title: '시간을 선택해주세요',
         text: '방문하실 회차를 선택해야 합니다.',
-        confirmButtonColor: '#4f46e5',
+        confirmButtonColor: '#3b82f6',
         customClass: { popup: 'rounded-2xl' }
       });
       return;
@@ -240,7 +240,7 @@ const GuestEventPage: React.FC = () => {
       await Swal.fire({
         icon: 'warning',
         title: '이름을 입력해주세요',
-        confirmButtonColor: '#4f46e5',
+        confirmButtonColor: '#3b82f6',
         customClass: { popup: 'rounded-2xl' }
       });
       return;
@@ -251,7 +251,7 @@ const GuestEventPage: React.FC = () => {
         icon: 'warning',
         title: '연락처를 확인해주세요',
         text: '올바른 휴대폰 번호 형식이 아닙니다.',
-        confirmButtonColor: '#4f46e5',
+        confirmButtonColor: '#3b82f6',
         customClass: { popup: 'rounded-2xl' }
       });
       return;
@@ -269,7 +269,7 @@ const GuestEventPage: React.FC = () => {
             icon: 'warning',
             title: '추가 정보를 입력해주세요',
             text: `'${question.questionText}' 항목은 필수입니다.`,
-            confirmButtonColor: '#4f46e5',
+            confirmButtonColor: '#3b82f6',
             customClass: { popup: 'rounded-2xl' }
           });
           return;
@@ -312,9 +312,9 @@ const GuestEventPage: React.FC = () => {
 
       await Swal.fire({
         icon: 'success',
-        title: '🎉 예매 성공!',
+        title: '예매 성공!',
         text: '티켓이 발급되었습니다.',
-        confirmButtonColor: '#4f46e5',
+        confirmButtonColor: '#3b82f6',
         timer: 1500,
         showConfirmButton: false,
         customClass: { popup: 'rounded-2xl' }
@@ -327,7 +327,7 @@ const GuestEventPage: React.FC = () => {
           icon: 'error',
           title: '예매 실패',
           text: (error.response.data as { message?: string })?.message || '오류가 발생했습니다.',
-          confirmButtonColor: '#4f46e5',
+          confirmButtonColor: '#3b82f6',
           customClass: { popup: 'rounded-2xl' }
         });
       } else {
@@ -335,7 +335,7 @@ const GuestEventPage: React.FC = () => {
           icon: 'error',
           title: '통신 오류',
           text: '서버와 연결할 수 없습니다.',
-          confirmButtonColor: '#4f46e5',
+          confirmButtonColor: '#3b82f6',
           customClass: { popup: 'rounded-2xl' }
         });
       }
@@ -347,8 +347,8 @@ const GuestEventPage: React.FC = () => {
   // --- 렌더링: 로딩/에러 ---
   if (loading) {
     return (
-      <div className="h-screen flex flex-col gap-4 items-center justify-center bg-gray-50">
-        <Loader2 className="animate-spin text-indigo-600 w-12 h-12" />
+      <div className="h-screen flex flex-col gap-4 items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100">
+        <Loader2 className="animate-spin text-blue-600 w-12 h-12" />
         <p className="text-gray-500 font-medium animate-pulse">이벤트 정보를 불러오고 있습니다...</p>
       </div>
     );
@@ -356,9 +356,9 @@ const GuestEventPage: React.FC = () => {
 
   if (errorType === 'PRIVATE') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center font-[Pretendard] px-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col justify-center items-center font-[Pretendard] px-6">
         <div className="text-center mb-10 animate-in fade-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center mb-6 shadow-xl shadow-gray-200">
+          <div className="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center mb-6 shadow-xl shadow-gray-200/50">
             <Lock className="text-gray-800 w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">비공개 이벤트</h1>
@@ -379,9 +379,9 @@ const GuestEventPage: React.FC = () => {
 
   if (errorType === 'NOT_FOUND' || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center font-[Pretendard] px-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col justify-center items-center font-[Pretendard] px-6">
         <div className="text-center mb-10 animate-in fade-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-red-50 rounded-full mx-auto flex items-center justify-center mb-6">
+          <div className="w-24 h-24 bg-gradient-to-br from-red-50 to-red-100 rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg shadow-red-100/50">
             <AlertCircle className="text-red-400 w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">존재하지 않는 이벤트</h1>
@@ -402,16 +402,16 @@ const GuestEventPage: React.FC = () => {
 
   // --- 메인 렌더링 ---
   return (
-    <div className="min-h-screen bg-gray-100 font-[Pretendard] flex justify-center items-start pt-0 sm:pt-10 pb-0 sm:pb-10">
-      
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-slate-200 font-[Pretendard] flex justify-center items-start pt-0 sm:pt-10 pb-0 sm:pb-10">
+
       {/* 모바일 컨테이너 */}
-      <div className="w-full max-w-[480px] min-h-screen sm:min-h-[800px] sm:rounded-[2.5rem] shadow-2xl relative bg-white overflow-hidden flex flex-col">
-        
+      <div className="w-full max-w-[480px] min-h-screen sm:min-h-[800px] sm:rounded-[2.5rem] shadow-2xl relative bg-white overflow-hidden flex flex-col ring-1 ring-black/5">
+
         {/* 1. 상단 히어로 이미지 영역 (패럴랙스 효과) */}
         <div className="relative h-[420px] shrink-0 overflow-hidden bg-gray-900">
            {/* 이미지 슬라이더 */}
            {event.images.length > 0 ? (
-            <div 
+            <div
                 className="absolute inset-0 w-full h-full transition-transform duration-100"
                 style={{ transform: `translateY(${scrollY * 0.4}px)` }} // 패럴랙스
             >
@@ -429,14 +429,14 @@ const GuestEventPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300 text-gray-400">
                <Ticket size={48} className="opacity-20"/>
             </div>
           )}
 
           {/* 상단 네비게이션 */}
           <div className="absolute top-0 left-0 w-full p-4 z-50 flex justify-between items-center">
-             <button 
+             <button
                 onClick={() => navigate('/')}
                 className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors"
              >
@@ -461,17 +461,17 @@ const GuestEventPage: React.FC = () => {
           {/* 타이틀 섹션 */}
           <div className="mb-10">
             <div className="flex gap-2 mb-3">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-600 text-xs font-bold">
+                <span className="badge-primary">
                     <Sparkles size={12} /> 추천 이벤트
                 </span>
             </div>
             <h1 className="text-[26px] font-bold text-gray-900 leading-tight break-keep mb-5">
               {event.title}
             </h1>
-            
-            <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+
+            <div className="flex flex-col gap-3 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl border border-gray-100">
                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm shrink-0">
                      <Calendar size={16} />
                   </div>
                   <div>
@@ -483,7 +483,7 @@ const GuestEventPage: React.FC = () => {
                </div>
                <div className="w-full h-px bg-gray-200/50"></div>
                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm shrink-0">
                      <MapPin size={16} />
                   </div>
                   <div>
@@ -500,9 +500,9 @@ const GuestEventPage: React.FC = () => {
                 <Info size={18} className="text-gray-400" /> 상세 정보
             </h3>
             <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed bg-white" data-color-mode="light">
-              <MDEditor.Markdown 
-                source={event.description} 
-                style={{ backgroundColor: 'white', color: '#4b5563', fontSize: '0.95rem', lineHeight: '1.7' }} 
+              <MDEditor.Markdown
+                source={event.description}
+                style={{ backgroundColor: 'white', color: '#4b5563', fontSize: '0.95rem', lineHeight: '1.7' }}
               />
             </div>
           </section>
@@ -524,26 +524,26 @@ const GuestEventPage: React.FC = () => {
                     onClick={() => !isSoldOut && setSelectedScheduleId(schedule.id)}
                     disabled={isSoldOut}
                     className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 group
-                      ${isSoldOut 
-                        ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed' 
+                      ${isSoldOut
+                        ? 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
                         : isSelected
-                            ? 'bg-indigo-50 border-indigo-600 shadow-md ring-0'
-                            : 'bg-white border-gray-100 hover:border-indigo-200 hover:shadow-sm'
+                            ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-600 shadow-lg shadow-blue-100/50 ring-4 ring-blue-500/10'
+                            : 'bg-white border-gray-100 hover:border-blue-200 hover:shadow-md'
                       }
                     `}
                   >
                     <div className="flex justify-between items-start mb-2">
-                        <span className={`text-lg font-bold ${isSelected ? 'text-indigo-700' : 'text-gray-900'}`}>
+                        <span className={`text-lg font-bold ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
                             {formatTime(schedule.startTime)}
                         </span>
-                        {isSelected && <CheckCircle size={20} className="text-indigo-600 fill-indigo-100" />}
+                        {isSelected && <CheckCircle size={20} className="text-blue-600 fill-blue-100" />}
                     </div>
-                    
+
                     <div className="flex items-center gap-1.5 text-xs font-medium">
                         {isSoldOut ? (
                             <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-600">매진</span>
                         ) : (
-                            <span className={`${isSelected ? 'text-indigo-600' : 'text-gray-500'}`}>
+                            <span className={`${isSelected ? 'text-blue-600' : 'text-gray-500'}`}>
                                 잔여 <span className="font-bold">{remaining}</span>석
                             </span>
                         )}
@@ -563,13 +563,13 @@ const GuestEventPage: React.FC = () => {
               <div className="group">
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">이름</label>
                 <div className="relative">
-                    <User className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 group-focus-within:text-indigo-500 transition-colors" />
+                    <User className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="실명을 입력해주세요"
-                        className="w-full bg-gray-50 border border-transparent rounded-xl pl-12 pr-4 py-3.5 text-sm font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none placeholder:text-gray-400"
+                        className="input-standard pl-12"
                     />
                 </div>
               </div>
@@ -577,14 +577,14 @@ const GuestEventPage: React.FC = () => {
               <div className="group">
                 <label className="block text-xs font-bold text-gray-500 mb-1.5 ml-1">연락처</label>
                 <div className="relative">
-                    <Phone className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 group-focus-within:text-indigo-500 transition-colors" />
+                    <Phone className="absolute left-4 top-3.5 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
                     <input
                         type="tel"
                         value={phone}
                         onChange={handlePhoneChange}
                         placeholder="010-0000-0000"
                         maxLength={13}
-                        className="w-full bg-gray-50 border border-transparent rounded-xl pl-12 pr-4 py-3.5 text-sm font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none placeholder:text-gray-400"
+                        className="input-standard pl-12"
                     />
                 </div>
               </div>
@@ -599,7 +599,7 @@ const GuestEventPage: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full bg-gray-50 border border-transparent rounded-xl px-4 py-3.5 text-sm font-medium focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none placeholder:text-gray-400"
+                      className="input-standard"
                       placeholder="답변을 입력해주세요"
                       onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                     />
@@ -623,10 +623,10 @@ const GuestEventPage: React.FC = () => {
                 <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || !selectedScheduleId}
-                    className={`flex-1 relative overflow-hidden font-bold text-lg py-3.5 rounded-2xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2
+                    className={`flex-1 relative overflow-hidden font-bold text-lg py-3.5 rounded-2xl transition-all active:scale-[0.98] flex items-center justify-center gap-2
                         ${isSubmitting || !selectedScheduleId
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                            : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-xl shadow-blue-200/50'
                         }
                     `}
                 >

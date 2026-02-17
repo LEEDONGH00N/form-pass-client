@@ -17,7 +17,7 @@ interface ReservationLookupResponse {
 
 const GuestLookupPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +47,6 @@ const GuestLookupPage: React.FC = () => {
       setErrorMsg('');
 
       // 백엔드 조회 API 호출
-      // 응답 형식: ReservationLookupResponse[] (배열)
       const response = await axios.post<ReservationLookupResponse[]>(`${API_HOST}/api/reservations/lookup`, {
         guestName: name,
         guestPhoneNumber: phone.replace(/-/g, '') // 하이픈 제거 전송
@@ -55,12 +54,10 @@ const GuestLookupPage: React.FC = () => {
 
       const reservations = response.data;
 
-      // 🔥 [수정] 배열(List) 처리 로직
-      // 결과가 존재하면 가장 첫 번째(최신) 티켓으로 이동합니다.
+      // 배열(List) 처리 로직
       if (Array.isArray(reservations) && reservations.length > 0) {
-          // 백엔드에서 최신순(DESC)으로 정렬해 준다고 가정하고 0번 인덱스 사용
-          const latestTicket = reservations[0]; 
-          
+          const latestTicket = reservations[0];
+
           // 토큰 저장 후 이동
           localStorage.setItem('guest_token', latestTicket.qrToken);
           navigate(`/ticket/${latestTicket.qrToken}`);
@@ -81,15 +78,20 @@ const GuestLookupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center font-[Pretendard] px-6">
-      <div className="absolute top-6 left-6">
-        <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800"><ChevronLeft size={28} /></button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex flex-col justify-center items-center font-[Pretendard] px-6 relative overflow-hidden">
+
+      {/* 배경 장식 요소 */}
+      <div className="absolute top-20 -left-32 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-float" />
+      <div className="absolute -bottom-20 -right-32 w-96 h-96 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
+
+      <div className="absolute top-6 left-6 z-10">
+        <button onClick={() => navigate(-1)} className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 p-2 rounded-xl transition-all"><ChevronLeft size={28} /></button>
       </div>
 
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm relative">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
-            <Ticket className="text-white w-8 h-8" />
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-xl shadow-blue-200/50 mb-6 hover:scale-105 transition-transform cursor-default">
+            <Ticket className="text-white w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">예매 내역 조회</h1>
           <p className="text-gray-500 text-sm">
@@ -97,18 +99,18 @@ const GuestLookupPage: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={handleLookup} className="bg-white p-8 rounded-3xl shadow-xl shadow-gray-100 border border-white">
-          
+        <form onSubmit={handleLookup} className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl shadow-blue-100/50 border border-white/50 hover:shadow-xl hover:shadow-blue-200/30 transition-all">
+
           {/* 이름 입력 */}
           <div className="mb-5">
-            <label className="block text-xs font-bold text-gray-400 mb-1 ml-1">이름</label>
-            <div className="relative flex items-center">
-                <User className="absolute left-4 text-gray-400 w-5 h-5" />
-                <input 
-                    type="text" 
+            <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">이름</label>
+            <div className="relative flex items-center group">
+                <User className="absolute left-4 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
+                <input
+                    type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block pl-12 p-3.5 transition-all outline-none" 
+                    className="w-full bg-gray-50/50 border border-gray-200/80 text-gray-900 text-sm rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white block pl-12 p-3.5 transition-all outline-none"
                     placeholder="홍길동"
                 />
             </div>
@@ -116,15 +118,15 @@ const GuestLookupPage: React.FC = () => {
 
           {/* 휴대폰 번호 입력 */}
           <div className="mb-8">
-            <label className="block text-xs font-bold text-gray-400 mb-1 ml-1">휴대폰 번호</label>
-            <div className="relative flex items-center">
-                <Phone className="absolute left-4 text-gray-400 w-5 h-5" />
-                <input 
-                    type="tel" 
+            <label className="block text-xs font-bold text-gray-500 mb-2 ml-1">휴대폰 번호</label>
+            <div className="relative flex items-center group">
+                <Phone className="absolute left-4 text-gray-400 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
+                <input
+                    type="tel"
                     value={phone}
                     onChange={handlePhoneChange}
                     maxLength={13}
-                    className="w-full bg-gray-50 border border-gray-100 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block pl-12 p-3.5 transition-all outline-none" 
+                    className="w-full bg-gray-50/50 border border-gray-200/80 text-gray-900 text-sm rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white block pl-12 p-3.5 transition-all outline-none"
                     placeholder="010-0000-0000"
                 />
             </div>
@@ -132,16 +134,16 @@ const GuestLookupPage: React.FC = () => {
 
           {/* 에러 메시지 */}
           {errorMsg && (
-            <div className="mb-6 p-3 bg-red-50 text-red-500 text-xs font-bold rounded-lg text-center flex items-center justify-center gap-2 animate-pulse">
+            <div className="mb-6 p-3.5 bg-gradient-to-r from-red-50 to-red-100/50 text-red-600 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2 border border-red-100">
                 <AlertCircle size={16} /> {errorMsg}
             </div>
           )}
 
           {/* 조회 버튼 */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading}
-            className="w-full text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 font-bold rounded-xl text-lg px-5 py-4 text-center transition-all shadow-lg shadow-indigo-200 active:scale-[0.98] disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+            className="w-full text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 font-bold rounded-xl text-lg px-5 py-4 text-center transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:scale-[0.98] disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed disabled:shadow-none flex justify-center items-center gap-2"
           >
             {isLoading ? (
                 <>

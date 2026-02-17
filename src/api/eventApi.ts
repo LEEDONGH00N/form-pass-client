@@ -8,9 +8,8 @@ import {
 } from '../types/event';
 import { API_ENDPOINTS } from '../constants/api';
 
-// Axios 인스턴스 생성 (쿠키 기반 인증)
+// Axios 인스턴스 생성
 const apiClient = axios.create({
-  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
