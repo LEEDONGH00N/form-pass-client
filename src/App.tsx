@@ -20,11 +20,10 @@ function App() {
         <Route path="/host/create" element={<CreateEventPage />} />
         <Route path="/host/edit/:eventId" element={<CreateEventPage />} />
         <Route path="/host/dashboard" element={<HostDashboardPage />} />
-        <Route path="/:eventCode" element={<EventLandingPage />} />
         <Route path="/host/events/:eventId" element={<HostEventDetailPage />} />
-        <Route path="/lookup" element={<GuestTicketPage />} />
-        <Route path="/ticket/:qrToken" element={<GuestTicketPage />} />
         <Route path="/lookup" element={<GuestLookupPage />} />
+        <Route path="/ticket/:qrToken" element={<GuestTicketPage />} />
+        <Route path="/:eventCode" element={<EventLandingPage />} />
       </Routes>
     </BrowserRouter>
   );

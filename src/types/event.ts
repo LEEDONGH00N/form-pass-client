@@ -9,7 +9,7 @@ export interface Schedule {
 export interface Question {
   id: number;
   questionText: string;
-  questionType: 'TEXT' | 'SELECT' | 'CHECKBOX';
+  questionType: 'TEXT' | 'CHECKBOX' | 'RADIO';
   isRequired: boolean;
 }
 
@@ -38,7 +38,26 @@ export interface ReservationRequest {
 }
 
 export interface ReservationResponse {
+  id: number;
   qrToken: string;
+  guestName: string;
+  guestPhoneNumber: string;
+  ticketCount: number;
+  status: 'CONFIRMED' | 'CANCELLED';
+  isCheckedIn: boolean;
+  eventTitle: string;
+  eventLocation: string;
+  schedule: {
+    id: number;
+    startTime: string;
+    endTime: string;
+  };
+  answers: {
+    questionId: number;
+    questionText: string;
+    answerText: string;
+  }[];
+  createdAt: string;
 }
 
 export interface ReservationLookupRequest {
@@ -50,6 +69,7 @@ export interface ReservationLookupResponse {
   qrToken: string;
   eventTitle: string;
   guestName: string;
+  ticketCount: number;
   createdAt: string;
 }
 

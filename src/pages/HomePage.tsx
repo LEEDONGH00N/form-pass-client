@@ -9,12 +9,8 @@ import {
   Users,
   Clock,
   Shield,
-  Sparkles,
-  Calendar,
-  MapPin,
-  User,
-  CheckCircle2,
-  ChevronRight
+  Zap,
+  CheckCircle,
 } from 'lucide-react';
 import { authApi, isAuthenticated } from '../api/authApi';
 
@@ -54,58 +50,56 @@ export default function HomePage() {
     {
       icon: <Clock className="w-6 h-6" />,
       title: "선착순 마감",
-      desc: "정확한 타임스탬프로 공정한 접수"
+      desc: "정확한 타임스탬프로 공정하게 접수를 마감합니다"
     },
     {
       icon: <QrCode className="w-6 h-6" />,
-      title: "QR 입장",
-      desc: "스캔 한 번으로 빠른 체크인"
+      title: "QR 체크인",
+      desc: "스캔 한 번으로 빠르고 간편한 입장 처리"
     },
     {
       icon: <Users className="w-6 h-6" />,
       title: "실시간 관리",
-      desc: "참가자 현황을 한눈에 파악"
+      desc: "참가자 현황을 대시보드에서 한눈에 파악"
     },
     {
       icon: <Shield className="w-6 h-6" />,
       title: "보안 티켓",
-      desc: "중복 입장 및 캡쳐 방지"
+      desc: "중복 입장 방지 및 위변조 차단"
     }
   ];
 
   return (
-    <div className="font-[Pretendard] text-slate-900 bg-white min-h-screen">
+    <div className="font-[Pretendard] text-gray-900 bg-white min-h-screen">
 
       {/* 네비게이션 */}
       <nav className={`fixed w-full z-50 top-0 transition-all duration-300 ${
         isScrolled
-          ? 'bg-white/90 backdrop-blur-md border-b border-gray-100 py-4'
-          : 'bg-transparent py-6'
+          ? 'bg-white/95 backdrop-blur-md shadow-sm py-3'
+          : 'bg-transparent py-5'
       }`}>
         <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
-
-          {/* 로고 */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <Zap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">Form PASS</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">Form PASS</span>
           </Link>
 
           {/* 데스크탑 메뉴 */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link to="/lookup" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/lookup" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               티켓 조회
             </Link>
 
             {!isLoggedIn ? (
               <>
-                <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+                <Link to="/login" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
                   로그인
                 </Link>
                 <button
                   onClick={handleStart}
-                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition-colors"
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
                 >
                   시작하기
                 </button>
@@ -114,23 +108,23 @@ export default function HomePage() {
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-sm font-medium hover:bg-slate-200 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-medium hover:bg-blue-100 transition-colors"
                 >
                   <span>내 계정</span>
-                  <ChevronDown size={14} />
+                  <ChevronDown size={16} className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 py-2 overflow-hidden">
+                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
                     <button
                       onClick={() => navigate('/host/dashboard')}
-                      className="block w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                      className="block w-full text-left px-4 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
                     >
                       대시보드
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                      className="block w-full text-left px-4 py-2.5 text-red-500 hover:bg-red-50 transition-colors"
                     >
                       로그아웃
                     </button>
@@ -142,7 +136,7 @@ export default function HomePage() {
 
           {/* 모바일 메뉴 토글 */}
           <button
-            className="md:hidden text-slate-900"
+            className="md:hidden text-gray-700 p-2 hover:bg-gray-100 rounded-lg transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -151,16 +145,15 @@ export default function HomePage() {
 
         {/* 모바일 메뉴 */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-slate-100 px-6 py-6 shadow-lg">
-            <div className="flex flex-col gap-4">
-              <Link to="/lookup" className="text-slate-700 font-medium py-2">티켓 조회</Link>
-              <hr className="border-slate-100" />
+          <div className="md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 px-6 py-4 shadow-lg">
+            <div className="flex flex-col gap-2">
+              <Link to="/lookup" className="text-gray-700 font-medium py-3 px-4 rounded-lg hover:bg-gray-50">티켓 조회</Link>
               {!isLoggedIn ? (
                 <>
-                  <Link to="/login" className="text-slate-700 font-medium py-2">로그인</Link>
+                  <Link to="/login" className="text-gray-700 font-medium py-3 px-4 rounded-lg hover:bg-gray-50">로그인</Link>
                   <button
                     onClick={handleStart}
-                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold"
+                    className="mt-2 w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold"
                   >
                     시작하기
                   </button>
@@ -169,13 +162,13 @@ export default function HomePage() {
                 <>
                   <button
                     onClick={() => navigate('/host/dashboard')}
-                    className="text-left text-blue-600 font-medium py-2"
+                    className="text-left text-blue-600 font-medium py-3 px-4 rounded-lg hover:bg-blue-50"
                   >
                     대시보드
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="text-left text-slate-500 py-2"
+                    className="text-left text-gray-500 py-3 px-4 rounded-lg hover:bg-gray-50"
                   >
                     로그아웃
                   </button>
@@ -187,23 +180,27 @@ export default function HomePage() {
       </nav>
 
       {/* 히어로 섹션 */}
-      <section className="pt-32 pb-16 px-6">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+        {/* 배경 그라데이션 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 to-white pointer-events-none" />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-40 right-1/4 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl pointer-events-none" />
 
+        <div className="max-w-4xl mx-auto text-center relative">
           {/* 배지 */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-sm font-medium mb-8">
-            <Sparkles className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-8">
+            <Zap className="w-4 h-4" />
             <span>무료로 시작하세요</span>
           </div>
 
           {/* 메인 타이틀 */}
-          <h1 className="text-4xl md:text-6xl font-bold text-slate-900 leading-tight mb-6">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 leading-tight mb-6">
             이벤트 접수부터<br />
-            <span className="text-blue-600">입장 관리</span>까지
+            <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">입장 관리</span>까지
           </h1>
 
           {/* 서브 타이틀 */}
-          <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed">
             선착순 마감, QR 체크인, 참가자 관리를<br className="hidden md:block" />
             하나의 플랫폼에서 간편하게 처리하세요.
           </p>
@@ -212,14 +209,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               onClick={handleStart}
-              className="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-2xl text-lg font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/30 hover:-translate-y-1 flex items-center justify-center gap-2"
             >
               무료로 시작하기
               <ArrowRight className="w-5 h-5" />
             </button>
             <Link
               to="/lookup"
-              className="w-full sm:w-auto px-8 py-4 bg-slate-100 text-slate-700 rounded-xl text-lg font-medium hover:bg-slate-200 transition-colors text-center"
+              className="w-full sm:w-auto px-8 py-4 bg-white text-gray-700 rounded-2xl text-lg font-semibold border-2 border-gray-200 hover:border-blue-300 hover:text-blue-600 transition-all text-center"
             >
               내 티켓 찾기
             </Link>
@@ -227,202 +224,80 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 목업 섹션 */}
-      <section className="py-16 px-6 bg-gradient-to-b from-white to-slate-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
-              직관적인 예약 경험
-            </h2>
-            <p className="text-slate-500">참가자는 쉽게 예약하고, 주최자는 편하게 관리하세요</p>
-          </div>
-
-          {/* 목업 컨테이너 */}
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16">
-
-            {/* 예약 페이지 목업 */}
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-[3rem] blur-2xl opacity-50"></div>
-              <div className="relative bg-slate-900 rounded-[2.5rem] p-3 shadow-2xl">
-                {/* 폰 프레임 노치 */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-900 rounded-b-2xl z-10"></div>
-
-                {/* 화면 */}
-                <div className="w-[280px] h-[560px] bg-white rounded-[2rem] overflow-hidden">
-                  {/* 상단 이미지 */}
-                  <div className="h-40 bg-gradient-to-br from-blue-400 to-blue-600 relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-white text-center">
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl mx-auto mb-2 flex items-center justify-center backdrop-blur-sm">
-                          <Calendar className="w-8 h-8 text-white" />
-                        </div>
-                        <p className="text-sm font-medium opacity-90">이벤트 이미지</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 이벤트 정보 */}
-                  <div className="p-5">
-                    <h3 className="font-bold text-lg text-slate-900 mb-2">2025 테크 컨퍼런스</h3>
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-                      <MapPin className="w-4 h-4" />
-                      <span>서울 코엑스 그랜드볼룸</span>
-                    </div>
-
-                    {/* 시간 선택 */}
-                    <p className="text-xs font-bold text-slate-400 mb-2">시간 선택</p>
-                    <div className="space-y-2 mb-4">
-                      <div className="p-3 bg-blue-50 border-2 border-blue-500 rounded-xl flex justify-between items-center">
-                        <div>
-                          <p className="font-bold text-blue-700 text-sm">오전 10:00</p>
-                          <p className="text-xs text-blue-500">잔여 23석</p>
-                        </div>
-                        <CheckCircle2 className="w-5 h-5 text-blue-500" />
-                      </div>
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                        <p className="font-medium text-slate-600 text-sm">오후 2:00</p>
-                        <p className="text-xs text-slate-400">잔여 45석</p>
-                      </div>
-                    </div>
-
-                    {/* 입력 필드 미리보기 */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
-                        <User className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm text-slate-400">이름 입력</span>
-                      </div>
-                      <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-                        예약하기
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 라벨 */}
-              <div className="text-center mt-6">
-                <p className="font-bold text-slate-900">예약 페이지</p>
-                <p className="text-sm text-slate-500">참가자가 보는 화면</p>
-              </div>
-            </div>
-
-            {/* 화살표 (데스크탑) */}
-            <div className="hidden lg:flex flex-col items-center gap-2 text-slate-300">
-              <ArrowRight className="w-8 h-8" />
-              <span className="text-xs font-medium text-slate-400">예약 완료</span>
-            </div>
-
-            {/* 화살표 (모바일) */}
-            <div className="lg:hidden flex items-center gap-2 text-slate-300 rotate-90">
-              <ArrowRight className="w-6 h-6" />
-            </div>
-
-            {/* 티켓 목업 */}
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-cyan-100 to-blue-100 rounded-[3rem] blur-2xl opacity-50"></div>
-              <div className="relative bg-slate-900 rounded-[2.5rem] p-3 shadow-2xl">
-                {/* 폰 프레임 노치 */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-slate-900 rounded-b-2xl z-10"></div>
-
-                {/* 화면 */}
-                <div className="w-[280px] h-[560px] bg-gradient-to-b from-slate-100 to-slate-200 rounded-[2rem] overflow-hidden flex items-center justify-center p-4">
-                  {/* 티켓 카드 */}
-                  <div className="w-full bg-white rounded-3xl shadow-xl overflow-hidden">
-                    {/* 보안 띠 */}
-                    <div className="h-8 bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
-                      <p className="text-white text-xs font-bold tracking-wider">VALID TICKET</p>
-                    </div>
-
-                    {/* 헤더 */}
-                    <div className="bg-slate-900 text-white p-4 text-center">
-                      <h3 className="font-bold">2025 테크 컨퍼런스</h3>
-                      <div className="inline-flex items-center gap-1 text-xs bg-slate-700 px-2 py-1 rounded mt-2">
-                        <CheckCircle2 className="w-3 h-3 text-green-400" />
-                        <span>예약 확정</span>
-                      </div>
-                    </div>
-
-                    {/* QR 코드 영역 */}
-                    <div className="p-6 flex flex-col items-center bg-white">
-                      <div className="w-32 h-32 bg-slate-100 rounded-2xl border-2 border-slate-200 flex items-center justify-center mb-4">
-                        <QrCode className="w-20 h-20 text-slate-700" />
-                      </div>
-                      <p className="text-xs text-blue-500 font-medium">실시간 유효성 검증 중</p>
-                    </div>
-
-                    {/* 구분선 */}
-                    <div className="relative h-4 bg-slate-50 flex items-center">
-                      <div className="absolute left-0 w-4 h-8 bg-slate-200 rounded-r-full -ml-2"></div>
-                      <div className="w-full border-b-2 border-dashed border-slate-200 mx-4"></div>
-                      <div className="absolute right-0 w-4 h-8 bg-slate-200 rounded-l-full -mr-2"></div>
-                    </div>
-
-                    {/* 정보 */}
-                    <div className="p-4 bg-slate-50 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">예약자</span>
-                        <span className="font-bold text-slate-700">홍길동</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-400">입장 시간</span>
-                        <span className="font-bold text-slate-700">3월 15일 10:00</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 라벨 */}
-              <div className="text-center mt-6">
-                <p className="font-bold text-slate-900">QR 티켓</p>
-                <p className="text-sm text-slate-500">입장 시 제시</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 기능 섹션 */}
-      <section className="py-20 px-6 bg-slate-50">
-        <div className="max-w-5xl mx-auto">
-
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
-              필요한 모든 것을 한 곳에서
+      <section className="py-24 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              필요한 모든 기능을 한 곳에서
             </h2>
-            <p className="text-slate-500">복잡한 행사 운영, 이제 Form PASS로 간단하게</p>
+            <p className="text-gray-500 text-lg">복잡한 행사 운영, 이제 Form PASS로 간단하게</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, i) => (
               <div
                 key={i}
-                className="bg-white p-6 rounded-2xl border border-slate-100 hover:border-blue-200 hover:shadow-lg hover:shadow-blue-50 transition-all group"
+                className="bg-white p-8 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/50 transition-all duration-300 group"
               >
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
-                <h3 className="font-bold text-slate-900 mb-1">{feature.title}</h3>
-                <p className="text-sm text-slate-500">{feature.desc}</p>
+                <h3 className="font-bold text-gray-900 text-lg mb-2">{feature.title}</h3>
+                <p className="text-gray-500 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* 장점 섹션 */}
+      <section className="py-24 px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                왜 Form PASS인가요?
+              </h2>
+              <div className="space-y-5">
+                {[
+                  '5분 만에 이벤트 페이지 생성',
+                  '실시간 참가자 현황 대시보드',
+                  'QR코드로 빠른 입장 체크인',
+                  '모바일 최적화된 예약 페이지',
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
+                      <CheckCircle size={18} />
+                    </div>
+                    <span className="text-gray-700 text-lg">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-8 text-white">
+              <div className="text-6xl font-bold mb-2">100%</div>
+              <div className="text-xl font-semibold mb-4 text-blue-100">무료로 사용</div>
+              <p className="text-blue-100 leading-relaxed">
+                모든 기능을 무료로 사용하세요. 숨겨진 비용이나 제한 없이 이벤트를 운영할 수 있습니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA 섹션 */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-24 px-6 bg-gradient-to-br from-blue-500 to-blue-600">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             지금 바로 시작하세요
           </h2>
-          <p className="text-slate-500 mb-8">
+          <p className="text-blue-100 text-lg mb-10">
             가입부터 첫 이벤트 생성까지 5분이면 충분합니다.
           </p>
           <button
             onClick={handleStart}
-            className="px-8 py-4 bg-slate-900 text-white rounded-xl text-lg font-bold hover:bg-slate-800 transition-colors"
+            className="px-10 py-4 bg-white text-blue-600 rounded-2xl text-lg font-bold hover:bg-blue-50 transition-colors shadow-xl"
           >
             무료로 시작하기
           </button>
@@ -430,15 +305,15 @@ export default function HomePage() {
       </section>
 
       {/* 푸터 */}
-      <footer className="py-10 px-6 border-t border-slate-100">
+      <footer className="py-10 px-6 bg-gray-900 text-white">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center">
+              <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-slate-900">Form PASS</span>
+            <span className="font-bold text-lg">Form PASS</span>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-gray-400 text-sm">
             © 2025 Form PASS. All rights reserved.
           </p>
         </div>

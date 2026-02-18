@@ -1,64 +1,42 @@
-// src/pages/host/HostDashboardPage.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Calendar, MapPin, Loader2, Plus, Ticket } from 'lucide-react';
-import Swal from 'sweetalert2';
-import { authAxios, getAccessToken } from '../../api/authApi';
+import { Copy, Calendar, MapPin, Loader2, Plus, Image as ImageIcon, Check, Zap, LogOut } from 'lucide-react';
+import { showError, showWarning } from '../../constants/swalTheme';
+import { authAxios, getAccessToken, authApi } from '../../api/authApi';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const API_HOST = IS_PRODUCTION ? 'https://api.form-pass.life' : 'http://localhost:8080';
 const EVENTS_API_URL = `${API_HOST}/api/host/events`;
 
-// 백엔드 EventResponse에 맞춘 인터페이스
 interface Event {
   id: number;
   title: string;
   eventCode: string;
   location?: string;
-  images?: string[];     // 백엔드에서 리스트로 변경됨
-  thumbnailUrl?: string; // 하위 호환용
+  images?: string[];
+  thumbnailUrl?: string;
   description?: string;
-  isPublic: boolean;     // 공개 여부
-  // startDate, endDate는 백엔드 스케줄 리스트에서 가져오거나 별도 필드로 온다고 가정
+  isPublic: boolean;
   startDate?: string;
   endDate?: string;
 }
 
-// 개별 이벤트 카드 컴포넌트
 const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, currentDomain }) => {
   const navigate = useNavigate();
-  // 초기 상태를 서버 데이터로 설정
   const [isPublic, setIsPublic] = useState(event.isPublic);
+  const [copied, setCopied] = useState(false);
 
-  // 썸네일 처리: images 배열의 첫 번째 요소 우선, 없으면 thumbnailUrl 사용
   const displayThumbnail = (event.images && event.images.length > 0)
     ? event.images[0]
     : event.thumbnailUrl;
-
-  const handleEventClick = () => {
-    navigate(`/host/events/${event.id}`);
-  };
-
-  const handleEditEvent = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    navigate(`/host/edit/${event.id}`);
-  };
 
   const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const fullUrl = `${currentDomain}/${event.eventCode}`;
     try {
       await navigator.clipboard.writeText(fullUrl);
-      await Swal.fire({
-        icon: 'success',
-        title: '복사 완료',
-        text: '링크가 복사되었습니다!',
-        confirmButtonColor: '#3B82F6',
-        confirmButtonText: '확인',
-        timer: 1500,
-        showConfirmButton: false
-      });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('복사 실패:', err);
     }
@@ -67,7 +45,7 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
   const handleToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const newState = !isPublic;
-    setIsPublic(newState); // 낙관적 업데이트
+    setIsPublic(newState);
 
     try {
       await authAxios.patch(
@@ -76,106 +54,97 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
       );
     } catch (error) {
       console.error('상태 변경 실패:', error);
-      setIsPublic(!newState); // 실패 시 롤백
-      await Swal.fire({
-        icon: 'error',
-        title: '변경 실패',
-        text: '상태 변경 중 오류가 발생했습니다.',
-        confirmButtonColor: '#3B82F6',
-        confirmButtonText: '확인'
-      });
+      setIsPublic(!newState);
+      await showError('변경 실패', '상태 변경 중 오류가 발생했습니다.');
     }
   };
 
   return (
     <div
-      className="bg-white rounded-2xl border border-gray-100/80 overflow-hidden shadow-lg shadow-gray-100/50 hover:shadow-xl hover:shadow-blue-100/30 hover:-translate-y-1 hover:border-blue-200/50 transition-all duration-300 group flex flex-col cursor-pointer"
-      onClick={handleEventClick}
+      className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-blue-100/50 hover:border-blue-200 transition-all duration-300 cursor-pointer group"
+      onClick={() => navigate(`/host/events/${event.id}`)}
     >
-      {/* 썸네일 영역 */}
-      <div className="h-44 bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden shrink-0">
+      {/* 썸네일 */}
+      <div className="aspect-[16/10] bg-gradient-to-br from-gray-100 to-gray-50 relative overflow-hidden">
         {displayThumbnail ? (
           <img
             src={displayThumbnail}
             alt={event.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-400 bg-gradient-to-br from-gray-100 to-gray-50">
-            <Ticket className="w-12 h-12 opacity-30" />
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="w-12 h-12 text-gray-300" />
           </div>
         )}
-        {/* 공개/비공개 배지 */}
-        <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-bold backdrop-blur-md transition-all ${
+
+        {/* 공개 상태 뱃지 */}
+        <div className={`absolute top-3 right-3 px-3 py-1.5 text-xs font-semibold rounded-lg backdrop-blur-md ${
           isPublic
-            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
-            : 'bg-white/80 text-gray-600 border border-gray-200'
+            ? 'bg-blue-500/90 text-white'
+            : 'bg-white/90 text-gray-600 border border-gray-200'
         }`}>
           {isPublic ? '공개' : '비공개'}
         </div>
       </div>
 
-      {/* 정보 영역 */}
-      <div className="p-5 flex flex-col flex-1">
-        <h2 className="font-bold text-lg text-slate-800 mb-1 truncate group-hover:text-blue-600 transition-colors">
+      {/* 정보 */}
+      <div className="p-5">
+        <h2 className="font-bold text-gray-900 text-lg mb-3 truncate group-hover:text-blue-600 transition-colors">
           {event.title}
         </h2>
 
-        <p className="text-sm text-slate-500 mb-1 flex items-center gap-1">
-          <MapPin size={14} /> {event.location || '장소 미정'}
-        </p>
+        <div className="flex items-center gap-2 text-gray-500 text-sm mb-1.5">
+          <MapPin size={14} className="text-gray-400" />
+          <span className="truncate">{event.location || '장소 미정'}</span>
+        </div>
 
-        <div className="flex items-center text-slate-400 text-xs mb-4">
-          <Calendar size={14} className="mr-1" />
-          <span>
-            {event.startDate || '날짜 미정'}
-            {event.endDate ? ` ~ ${event.endDate}` : ''}
-          </span>
+        <div className="flex items-center gap-2 text-gray-400 text-xs mb-5">
+          <Calendar size={12} />
+          <span>{event.startDate || '날짜 미정'}</span>
         </div>
 
         {/* 링크 복사 */}
-        <div className="mt-auto mb-4" onClick={(e) => e.stopPropagation()}>
-          <label className="text-xs text-slate-400 font-semibold mb-1.5 block">이벤트 링크</label>
-          <div className="flex items-center bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-2.5 border border-slate-200/80 hover:border-blue-200 hover:shadow-sm transition-all group/link">
-            <div className="text-xs text-slate-600 truncate flex-1 mr-2 font-mono">
-              {currentDomain}/{event.eventCode}
-            </div>
-            <button
-              onClick={handleCopyLink}
-              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-              title="링크 복사"
-            >
-              <Copy size={16} />
-            </button>
+        <div className="flex items-center gap-2 mb-5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-1 px-3 py-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 font-mono truncate border border-gray-100">
+            {currentDomain}/{event.eventCode}
           </div>
+          <button
+            onClick={handleCopyLink}
+            className={`p-2.5 rounded-lg transition-all ${
+              copied
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-blue-500 hover:text-white'
+            }`}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+          </button>
         </div>
 
-        {/* 하단 버튼 영역 */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+        {/* 하단 액션 */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <button
-            onClick={handleEditEvent}
-            className="flex-1 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/host/edit/${event.id}`);
+            }}
+            className="text-sm text-gray-500 font-medium hover:text-blue-600 transition-colors"
           >
             수정하기
           </button>
 
-          {/* 토글 스위치 */}
-          <div className="flex items-center gap-2 pl-2" onClick={(e) => e.stopPropagation()}>
-            {/* 텍스트 */}
-            <span className={`text-xs font-bold w-10 text-center transition-colors ${isPublic ? 'text-blue-600' : 'text-gray-400'}`}>
-              {isPublic ? '공개' : '비공개'}
-            </span>
+          {/* 토글 */}
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            <span className="text-xs text-gray-400">{isPublic ? '공개' : '비공개'}</span>
             <button
               onClick={handleToggle}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none ${
-                isPublic
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-md shadow-blue-200/50'
-                  : 'bg-gray-300'
+              className={`relative w-12 h-7 rounded-full transition-colors ${
+                isPublic ? 'bg-blue-500' : 'bg-gray-300'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                  isPublic ? 'translate-x-6' : 'translate-x-1'
+                className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                  isPublic ? 'translate-x-5' : ''
                 }`}
               />
             </button>
@@ -189,12 +158,16 @@ const EventCard: React.FC<{ event: Event; currentDomain: string }> = ({ event, c
 const HostDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const currentDomain = window.location.origin;
+
+  const handleLogout = () => {
+    authApi.logout();
+    navigate('/');
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
-      // 토큰이 없으면 로그인 페이지로 리다이렉트
       if (!getAccessToken()) {
         navigate('/login');
         return;
@@ -206,13 +179,7 @@ const HostDashboardPage: React.FC = () => {
       } catch (error: any) {
         console.error('이벤트 목록 불러오기 실패:', error);
         if (error.response?.status === 401 || error.response?.status === 403) {
-          await Swal.fire({
-            icon: 'warning',
-            title: '로그인 필요',
-            text: '로그인이 필요합니다.',
-            confirmButtonColor: '#3B82F6',
-            confirmButtonText: '확인'
-          });
+          await showWarning('로그인 필요', '다시 로그인해주세요.');
           navigate('/login');
         }
       } finally {
@@ -224,59 +191,71 @@ const HostDashboardPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-gray-100">
-        <div className="text-blue-600 font-bold text-xl flex items-center gap-3">
-          <Loader2 className="animate-spin text-blue-600 w-8 h-8" />
-          불러오는 중...
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-white">
+        <Loader2 className="animate-spin text-blue-500 w-10 h-10" />
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-white to-gray-50 min-h-screen font-[Pretendard]">
-      {/* 헤더 - Glassmorphism 효과 */}
-      <header className="bg-white/70 backdrop-blur-xl border-b border-white/50 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
-        <div
-          className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent cursor-pointer"
-          onClick={() => navigate('/')}
-        >
-          Form PASS
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-500 font-medium bg-gray-100/80 px-3 py-1 rounded-lg">관리자 모드</span>
-          <button
-            onClick={() => navigate('/host/create')}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:scale-[0.98] flex items-center gap-2"
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 font-[Pretendard]">
+      {/* 헤더 */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
           >
-            <Plus size={18} /> 새 이벤트 만들기
-          </button>
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">Form PASS</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/host/create')}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5"
+            >
+              <Plus size={18} />
+              새 이벤트
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="로그아웃"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto p-8">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-3">
-          내 이벤트 목록
-          <span className="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-600 text-sm px-3 py-1 rounded-full border border-blue-100 font-bold">
-            {events.length}
-          </span>
-        </h1>
+      {/* 메인 */}
+      <main className="max-w-6xl mx-auto px-6 py-10">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">내 이벤트</h2>
+            <p className="text-gray-500 mt-1">총 {events.length}개의 이벤트</p>
+          </div>
+        </div>
 
         {events.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-16 text-center border-2 border-dashed border-gray-200 hover:border-blue-200 transition-colors group">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center group-hover:from-blue-100 group-hover:to-cyan-100 transition-colors">
-              <Ticket className="w-10 h-10 text-blue-400" />
+          <div className="bg-white rounded-3xl border-2 border-dashed border-gray-200 p-16 text-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <ImageIcon className="w-10 h-10 text-blue-400" />
             </div>
-            <p className="text-gray-500 mb-6 text-lg">아직 생성된 이벤트가 없습니다.</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">아직 이벤트가 없습니다</h3>
+            <p className="text-gray-500 mb-8">첫 번째 이벤트를 만들어보세요</p>
             <button
               onClick={() => navigate('/host/create')}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:scale-[0.98]"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/25"
             >
-              첫 번째 이벤트 만들기
+              <Plus size={20} />
+              첫 이벤트 만들기
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
               <EventCard key={event.id} event={event} currentDomain={currentDomain} />
             ))}

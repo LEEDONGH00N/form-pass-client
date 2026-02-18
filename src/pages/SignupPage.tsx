@@ -1,373 +1,330 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
-import Swal from 'sweetalert2';
-import { RefreshCw, Ticket, CheckCircle2 } from 'lucide-react';
+import { showSuccess, showError, showWarning, showCustomModal } from '../constants/swalTheme';
+import { Loader2, Check, RefreshCw, Zap, Mail, Lock, User } from 'lucide-react';
 
 export default function SignupPage() {
   const navigate = useNavigate();
 
-  // 입력 데이터 상태
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
 
-  // 진행 단계 상태 (INPUT: 이메일입력, VERIFY: 인증중, COMPLETE: 인증완료)
   const [step, setStep] = useState<'INPUT' | 'VERIFY' | 'COMPLETE'>('INPUT');
-
-  // 타이머 관련 상태
-  const [timeLeft, setTimeLeft] = useState(300); // 5분 = 300초
+  const [timeLeft, setTimeLeft] = useState(300);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 타이머 로직
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     } else if (timeLeft === 0) {
       setIsTimerActive(false);
     }
     return () => clearInterval(interval);
   }, [isTimerActive, timeLeft]);
 
-  // 시간 포맷팅 (05:00)
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  // 약관 전문 보기 모달
   const handleOpenPrivacyPolicy = () => {
-    Swal.fire({
-      title: '개인정보 수집 및 이용 동의',
+    showCustomModal({
+      title: '개인정보 수집 동의',
       html: `
-        <div style="text-align: left; font-size: 13px; line-height: 1.6; color: #374151;">
-          <p><strong>1. 수집 및 이용 목적</strong><br/>회원 가입 의사 확인, 회원 식별, 서비스 제공(행사 개설 및 관리)</p>
-          <br/>
-          <p><strong>2. 수집하는 개인정보 항목</strong><br/>아이디(이메일), 비밀번호, 이름</p>
-          <br/>
-          <p><strong>3. 보유 및 이용 기간</strong><br/><strong>회원 탈퇴 시까지</strong> (단, 관계 법령에 따라 보존이 필요한 경우 해당 기간까지 보관)</p>
-          <br/>
-          <p><strong>4. 동의 거부 권리</strong><br/>귀하는 개인정보 수집 및 이용에 거부할 권리가 있으나, 동의를 거부할 경우 회원가입이 불가능합니다.</p>
+        <div class="text-left text-sm text-gray-600 space-y-4">
+          <div>
+            <p class="font-semibold text-gray-800 mb-1">1. 수집 목적</p>
+            <p>회원 식별, 서비스 제공</p>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800 mb-1">2. 수집 항목</p>
+            <p>이메일, 비밀번호, 이름</p>
+          </div>
+          <div>
+            <p class="font-semibold text-gray-800 mb-1">3. 보유 기간</p>
+            <p>회원 탈퇴 시까지</p>
+          </div>
         </div>
       `,
       confirmButtonText: '확인',
-      confirmButtonColor: '#3B82F6',
-      customClass: {
-        popup: 'rounded-2xl',
-        confirmButton: 'rounded-xl px-6 py-2 font-bold'
-      }
     });
   };
 
-  // 1. 이메일 인증코드 전송
   const handleSendEmail = async () => {
     if (!email) {
-      await Swal.fire({ icon: 'warning', text: '이메일을 입력해주세요.', confirmButtonColor: '#3B82F6' });
+      await showWarning('이메일 입력', '이메일을 입력해주세요.');
       return;
     }
+    setIsLoading(true);
     try {
       await authApi.sendEmail({ email });
       setStep('VERIFY');
       setIsTimerActive(true);
-      setTimeLeft(300); // 5분 리셋
-      await Swal.fire({
-        icon: 'success',
-        title: '발송 완료',
-        text: '인증 메일이 발송되었습니다!',
-        confirmButtonColor: '#3B82F6',
-        timer: 1500,
-        showConfirmButton: false
-      });
-    } catch (e) {
-      console.error(e);
-      await Swal.fire({ icon: 'error', text: '메일 발송 실패. 서버 상태를 확인해주세요.', confirmButtonColor: '#3B82F6' });
+      setTimeLeft(300);
+      await showSuccess('발송 완료', '인증 메일을 확인해주세요.');
+    } catch {
+      await showError('발송 실패', '잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 이메일 재전송 핸들러
   const handleResendEmail = async () => {
     try {
       await authApi.sendEmail({ email });
-      setCode(''); // 코드 초기화
-      setIsTimerActive(true);
+      setCode('');
       setTimeLeft(300);
-      Swal.fire({
-        icon: 'success',
-        title: '재전송 완료',
-        text: '인증번호를 다시 보냈습니다.',
-        confirmButtonColor: '#3B82F6',
-        timer: 1500,
-        showConfirmButton: false
-      });
-    } catch (e) {
-      Swal.fire({ icon: 'error', text: '재전송 실패. 잠시 후 다시 시도해주세요.', confirmButtonColor: '#3B82F6' });
+      setIsTimerActive(true);
+      await showSuccess('재발송 완료', '인증 메일을 확인해주세요.');
+    } catch {
+      await showError('발송 실패', '잠시 후 다시 시도해주세요.');
     }
   };
 
-  // 2. 인증코드 검증
   const handleVerify = async () => {
+    setIsLoading(true);
     try {
       await authApi.verifyEmail({ email, authCode: code });
       setIsTimerActive(false);
       setStep('COMPLETE');
-      await Swal.fire({
-        icon: 'success',
-        title: '인증 성공',
-        text: '나머지 정보를 입력해주세요.',
-        confirmButtonColor: '#3B82F6',
-        timer: 1500,
-        showConfirmButton: false
-      });
-    } catch (e) {
-      console.error(e);
-      await Swal.fire({ icon: 'error', text: '인증 코드가 올바르지 않거나 만료되었습니다.', confirmButtonColor: '#3B82F6' });
+      await showSuccess('인증 완료', '나머지 정보를 입력해주세요.');
+    } catch {
+      await showError('인증 실패', '코드가 올바르지 않습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 3. 최종 회원가입
   const handleSignup = async () => {
     if (!name || !password) {
-      await Swal.fire({ icon: 'warning', text: '모든 정보를 입력해주세요.', confirmButtonColor: '#3B82F6' });
+      await showWarning('정보 입력', '모든 정보를 입력해주세요.');
       return;
     }
-
-    // 동의 여부 체크
     if (!isAgreed) {
-      await Swal.fire({ icon: 'warning', text: '약관에 동의해주세요.', confirmButtonColor: '#3B82F6' });
+      await showWarning('동의 필요', '개인정보 수집에 동의해주세요.');
       return;
     }
-
+    setIsLoading(true);
     try {
       await authApi.signup({ email, name, password });
-      await Swal.fire({
-        icon: 'success',
-        title: '회원가입 완료',
-        text: '로그인 페이지로 이동합니다.',
-        confirmButtonColor: '#3B82F6'
-      });
+      await showSuccess('가입 완료', '로그인해주세요.');
       navigate('/login');
-    } catch (e) {
-      console.error(e);
-      await Swal.fire({ icon: 'error', text: '가입 실패. 이미 존재하는 회원이거나 오류가 발생했습니다.', confirmButtonColor: '#3B82F6' });
+    } catch {
+      await showError('가입 실패', '이미 가입된 이메일입니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 스텝 인디케이터 컴포넌트
-  const StepIndicator = () => (
-    <div className="flex items-center justify-center gap-2 mb-8">
-      {/* Step 1 */}
-      <div className={`flex items-center gap-2 ${step === 'INPUT' ? 'opacity-100' : 'opacity-50'}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-          step === 'INPUT' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md' : 'bg-blue-100 text-blue-600'
-        }`}>
-          {step === 'INPUT' ? '1' : <CheckCircle2 size={16} />}
-        </div>
-        <span className="text-xs font-medium text-gray-500 hidden sm:block">이메일</span>
-      </div>
-
-      <div className={`w-8 h-px ${step !== 'INPUT' ? 'bg-blue-300' : 'bg-gray-200'}`} />
-
-      {/* Step 2 */}
-      <div className={`flex items-center gap-2 ${step === 'VERIFY' ? 'opacity-100' : step === 'INPUT' ? 'opacity-40' : 'opacity-50'}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-          step === 'VERIFY' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md' :
-          step === 'COMPLETE' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-        }`}>
-          {step === 'COMPLETE' ? <CheckCircle2 size={16} /> : '2'}
-        </div>
-        <span className="text-xs font-medium text-gray-500 hidden sm:block">인증</span>
-      </div>
-
-      <div className={`w-8 h-px ${step === 'COMPLETE' ? 'bg-blue-300' : 'bg-gray-200'}`} />
-
-      {/* Step 3 */}
-      <div className={`flex items-center gap-2 ${step === 'COMPLETE' ? 'opacity-100' : 'opacity-40'}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-          step === 'COMPLETE' ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-400'
-        }`}>
-          3
-        </div>
-        <span className="text-xs font-medium text-gray-500 hidden sm:block">완료</span>
-      </div>
-    </div>
-  );
+  const stepNum = step === 'INPUT' ? 1 : step === 'VERIFY' ? 2 : 3;
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 px-4 py-8 font-[Pretendard] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12 font-[Pretendard]">
+      {/* 배경 장식 */}
+      <div className="absolute top-20 right-10 w-72 h-72 bg-blue-200/40 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-10 w-96 h-96 bg-cyan-200/30 rounded-full blur-3xl" />
 
-      {/* 배경 장식 요소 */}
-      <div className="absolute top-20 -left-32 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-float" />
-      <div className="absolute -bottom-20 -right-32 w-96 h-96 bg-cyan-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
-
-      <div className="relative bg-white/80 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl shadow-blue-100/50 w-full max-w-md border border-white/50 animate-fade-in-up">
-
-        {/* 로고 아이콘 박스 */}
-        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200/50">
-          <Ticket className="w-7 h-7 text-white" />
+      <div className="w-full max-w-md relative">
+        {/* 로고 */}
+        <div className="text-center mb-10">
+          <Link to="/" className="inline-flex items-center gap-2 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <Zap className="w-6 h-6 text-white" />
+            </div>
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">회원가입</h1>
+          <p className="text-gray-500">Form PASS 계정을 만들어보세요</p>
         </div>
 
-        <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">회원가입</h1>
-        <p className="text-center text-gray-500 text-sm mb-6">Form PASS와 함께 이벤트를 관리하세요</p>
+        {/* 단계 표시 */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          {['이메일', '인증', '완료'].map((label, i) => {
+            const num = i + 1;
+            const isActive = num <= stepNum;
+            const isComplete = num < stepNum;
 
-        {/* 스텝 인디케이터 */}
-        <StepIndicator />
+            return (
+              <React.Fragment key={label}>
+                <div className="flex flex-col items-center gap-1">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                    isActive
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25'
+                      : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {isComplete ? <Check size={18} /> : num}
+                  </div>
+                  <span className={`text-xs font-medium ${isActive ? 'text-blue-600' : 'text-gray-400'}`}>{label}</span>
+                </div>
+                {i < 2 && (
+                  <div className={`w-12 h-1 rounded-full -mt-5 ${num < stepNum ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
 
-        <div className="space-y-5">
-
-          {/* 1단계: 이메일 입력 */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">이메일</label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={step !== 'INPUT'}
-                className="flex-1 p-3.5 bg-gray-50/50 border border-gray-200/80 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
-                placeholder="example@email.com"
-              />
-              {step === 'INPUT' && (
-                <button
-                  onClick={handleSendEmail}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-5 rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
-                >
-                  전송
-                </button>
-              )}
+        {/* 폼 카드 */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl shadow-gray-200/50 border border-white p-8">
+          <div className="space-y-5">
+            {/* 이메일 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={step !== 'INPUT'}
+                    className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-gray-50/50 disabled:bg-gray-100 disabled:text-gray-500"
+                    placeholder="example@email.com"
+                  />
+                </div>
+                {step === 'INPUT' && (
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={isLoading}
+                    className="px-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 shrink-0 shadow-lg shadow-blue-500/25"
+                  >
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '인증'}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* 2단계: 인증번호 입력 (메일 전송 후 표시) */}
-          {step === 'VERIFY' && (
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-2xl border border-blue-100 animate-fade-in-up shadow-inner">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-bold text-blue-700">인증번호 입력</label>
-                <span className={`font-bold text-sm ${timeLeft < 60 ? 'text-red-500' : 'text-blue-600'}`}>
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
-              <div className="flex gap-2 items-center mb-3">
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="flex-1 p-3 bg-white border border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 font-mono text-center text-lg tracking-widest"
-                  placeholder="000000"
-                  maxLength={6}
-                />
-                <button
-                  onClick={handleVerify}
-                  className="bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-md active:scale-[0.98] whitespace-nowrap"
-                >
-                  확인
-                </button>
-              </div>
-
-              {/* 재전송 버튼 */}
-              <div className="flex justify-between items-center text-xs px-1">
-                <p className="text-blue-400">* 이메일을 확인해주세요.</p>
+            {/* 인증 코드 */}
+            {step === 'VERIFY' && (
+              <div className="p-5 bg-blue-50 rounded-2xl border border-blue-100">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-gray-700">인증번호</label>
+                  <span className={`text-sm font-bold ${timeLeft < 60 ? 'text-red-500' : 'text-blue-600'}`}>
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-center font-mono tracking-widest text-lg"
+                    placeholder="000000"
+                    maxLength={6}
+                  />
+                  <button
+                    onClick={handleVerify}
+                    disabled={isLoading || code.length < 6}
+                    className="px-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 shadow-lg shadow-blue-500/25"
+                  >
+                    확인
+                  </button>
+                </div>
                 <button
                   onClick={handleResendEmail}
-                  className="flex items-center gap-1 text-gray-500 hover:text-blue-600 font-semibold underline transition-colors"
+                  className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
                 >
-                  <RefreshCw size={12} /> 인증번호 재전송
+                  <RefreshCw size={14} />
+                  재발송
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 인증 완료 메시지 */}
-          {step === 'COMPLETE' && (
-            <div className="flex items-center justify-center gap-2 text-green-600 font-bold text-sm bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200 shadow-inner">
-              <CheckCircle2 size={18} />
-              <span>이메일 인증이 완료되었습니다.</span>
-            </div>
-          )}
+            {/* 인증 완료 */}
+            {step === 'COMPLETE' && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-700">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <Check size={16} className="text-white" />
+                </div>
+                <span className="font-medium">이메일 인증이 완료되었습니다</span>
+              </div>
+            )}
 
-          <hr className="border-gray-100" />
-
-          {/* 3단계: 회원 정보 입력 (인증 완료 시 활성화) */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">이름</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={step !== 'COMPLETE'}
-              className="w-full p-3.5 bg-gray-50/50 border border-gray-200/80 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-all duration-200"
-              placeholder="홍길동"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={step !== 'COMPLETE'}
-              className="w-full p-3.5 bg-gray-50/50 border border-gray-200/80 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white disabled:bg-gray-100 disabled:text-gray-400 transition-all duration-200"
-              placeholder="비밀번호 입력"
-            />
-          </div>
-
-          {/* 개인정보 수집 동의 체크박스 */}
-          <div className="pt-1">
-            <div
-              className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
-                step === 'COMPLETE'
-                  ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-inner'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <label className="flex items-center gap-3 cursor-pointer flex-1">
+            {/* 이름 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">이름</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="checkbox"
-                  checked={isAgreed}
-                  onChange={(e) => setIsAgreed(e.target.checked)}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   disabled={step !== 'COMPLETE'}
-                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:bg-gray-200 cursor-pointer accent-blue-600"
+                  className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-gray-50/50 disabled:bg-gray-100 disabled:text-gray-400"
+                  placeholder="홍길동"
                 />
-                <span
-                  className={`font-bold text-sm ${
-                    step === 'COMPLETE' ? 'text-gray-800' : 'text-gray-400'
-                  }`}
-                >
-                  [필수] 개인정보 수집 및 이용 동의
-                </span>
-              </label>
-
-              {/* 약관 보기 버튼 */}
-              <button
-                type="button"
-                onClick={handleOpenPrivacyPolicy}
-                className="text-xs text-gray-500 underline hover:text-blue-600 transition-colors ml-2 whitespace-nowrap"
-              >
-                약관 보기
-              </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            onClick={handleSignup}
-            disabled={step !== 'COMPLETE' || !isAgreed}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 rounded-xl font-bold text-lg transition-all duration-200 shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-blue-300/50 hover:-translate-y-0.5 active:scale-[0.98] disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
-          >
-            가입하기
-          </button>
+            {/* 비밀번호 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={step !== 'COMPLETE'}
+                  className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all bg-gray-50/50 disabled:bg-gray-100 disabled:text-gray-400"
+                  placeholder="비밀번호"
+                />
+              </div>
+            </div>
+
+            {/* 동의 */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="agree"
+                checked={isAgreed}
+                onChange={(e) => setIsAgreed(e.target.checked)}
+                disabled={step !== 'COMPLETE'}
+                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+              />
+              <label htmlFor="agree" className="text-sm text-gray-600">
+                <button
+                  type="button"
+                  onClick={handleOpenPrivacyPolicy}
+                  className="text-blue-600 font-medium hover:underline"
+                >
+                  개인정보 수집
+                </button>
+                에 동의합니다
+              </label>
+            </div>
+
+            {/* 가입 버튼 */}
+            <button
+              onClick={handleSignup}
+              disabled={step !== 'COMPLETE' || !isAgreed || isLoading}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 transform"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  처리 중...
+                </>
+              ) : (
+                '가입하기'
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          이미 회원이신가요?
-          <Link to="/login" className="text-blue-600 font-bold ml-2 hover:underline hover:text-blue-700 transition-colors">
+        {/* 로그인 링크 */}
+        <p className="mt-8 text-center text-gray-500">
+          이미 계정이 있으신가요?{' '}
+          <Link to="/login" className="text-blue-600 font-semibold hover:text-blue-700 hover:underline">
             로그인
           </Link>
-        </div>
+        </p>
       </div>
     </div>
   );
