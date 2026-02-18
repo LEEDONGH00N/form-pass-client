@@ -32,8 +32,11 @@ export const isAuthenticated = (): boolean => {
 // --- Request Interceptor: Authorization 헤더 추가 ---
 api.interceptors.request.use(
   (config) => {
+    // /api/auth/** 요청은 Authorization 헤더 제외
+    const isAuthEndpoint = config.url?.startsWith('/api/auth/');
+
     const token = getAccessToken();
-    if (token) {
+    if (token && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
